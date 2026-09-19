@@ -1,0 +1,1365 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>BODY &amp; PAINT PERINTIS PERKASA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF0F3; --surface:#FFFFFF; --surface-2:#E4E8ED; --surface-3:#D9DEE5;
+    --ink:#1C2430; --ink-2:#4B5768; --ink-3:#8993A4;
+    --line:#DCE1E7; --line-strong:#C3CAD3;
+    --accent:#C2570F; --accent-ink:#FFFFFF; --accent-soft:#FBE7D6; --accent-strong:#9C4409;
+    --good:#187A50; --good-soft:#DEF3E7; --good-ink:#0E5236;
+    --warn:#8A650A; --warn-soft:#FBEFCB; --warn-ink:#6B4E06;
+    --bad:#B23434; --bad-soft:#FBE1E1; --bad-ink:#8A2323;
+    --info:#2A579C; --info-soft:#E1EAF8; --info-ink:#1E3F73;
+    --shadow-sm:0 1px 2px rgba(20,26,36,.07);
+    --shadow-md:0 8px 24px rgba(20,26,36,.10);
+    --radius:10px; --radius-lg:18px;
+    --font-display:'Big Shoulders Display',"Arial Narrow",sans-serif;
+    --font-body:'Public Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#14181F; --surface:#1B212B; --surface-2:#242C38; --surface-3:#2E3847;
+      --ink:#EDEFF3; --ink-2:#B7BFCC; --ink-3:#7B8494;
+      --line:#333D4C; --line-strong:#455066;
+      --accent:#E58339; --accent-ink:#1B1206; --accent-soft:#3A2413; --accent-strong:#F4995A;
+      --good:#3FCB8D; --good-soft:#123326; --good-ink:#8FE8BE;
+      --warn:#E4B93F; --warn-soft:#362A0D; --warn-ink:#F3D480;
+      --bad:#E97878; --bad-soft:#3A1414; --bad-ink:#F5A9A9;
+      --info:#7CA7E8; --info-soft:#17233A; --info-ink:#AFC9F0;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+      --shadow-md:0 8px 28px rgba(0,0,0,.45);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14181F; --surface:#1B212B; --surface-2:#242C38; --surface-3:#2E3847;
+    --ink:#EDEFF3; --ink-2:#B7BFCC; --ink-3:#7B8494;
+    --line:#333D4C; --line-strong:#455066;
+    --accent:#E58339; --accent-ink:#1B1206; --accent-soft:#3A2413; --accent-strong:#F4995A;
+    --good:#3FCB8D; --good-soft:#123326; --good-ink:#8FE8BE;
+    --warn:#E4B93F; --warn-soft:#362A0D; --warn-ink:#F3D480;
+    --bad:#E97878; --bad-soft:#3A1414; --bad-ink:#F5A9A9;
+    --info:#7CA7E8; --info-soft:#17233A; --info-ink:#AFC9F0;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    --shadow-md:0 8px 28px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--font-body);
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    padding-inline:16px;
+  }
+  h1,h2,h3,h4{font-family:var(--font-display); font-weight:700; letter-spacing:.01em; text-wrap:balance; margin:0;}
+  a{color:var(--accent);}
+  button{font-family:var(--font-body);}
+  input,select,textarea{font-family:var(--font-body); font-size:14px;}
+  .mono{font-family:var(--font-mono); font-variant-numeric:tabular-nums;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:var(--surface-3); border-radius:8px;}
+
+  #app{max-width:1240px; margin:0 auto; padding-block:20px 48px;}
+  .hidden{display:none !important;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    flex-wrap:wrap; padding:14px 18px; background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); margin-bottom:18px;
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:9px;background:var(--accent);color:var(--accent-ink);
+    display:flex;align-items:center;justify-content:center;font-family:var(--font-display);
+    font-weight:800;font-size:18px;flex:none;
+  }
+  .brand-text h1{font-size:19px;}
+  .brand-text p{margin:0;font-size:11.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.09em;}
+  .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .role-pill{
+    display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:999px;padding:6px 12px 6px 6px;font-size:13px;
+  }
+  .role-pill .dot{width:9px;height:9px;border-radius:50%;background:var(--good);flex:none;}
+  .btn{
+    appearance:none;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+    padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;transition:background .12s,border-color .12s;
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--surface-2);}
+  .btn:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.stage-head:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+  .btn-accent{background:var(--accent);border-color:var(--accent-strong);color:var(--accent-ink);}
+  .btn-accent:hover{background:var(--accent-strong);}
+  .btn-ghost{border-color:transparent;background:transparent;}
+  .btn-ghost:hover{background:var(--surface-2);}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:8px;}
+  .btn[disabled]{opacity:.45;cursor:not-allowed;}
+
+  /* ---------- Role gate ---------- */
+  .gate-wrap{
+    min-height:70vh;display:flex;align-items:center;justify-content:center;padding-block:40px;
+  }
+  .gate-card{
+    width:100%;max-width:460px;background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:30px 28px;
+  }
+  .gate-card h2{font-size:26px;margin-bottom:4px;}
+  .gate-card .sub{color:var(--ink-2);font-size:13px;margin-bottom:22px;}
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .field label{font-size:12.5px;font-weight:600;color:var(--ink-2);}
+  .field .hint{font-size:11.5px;color:var(--ink-3);font-weight:400;}
+  input[type=text],input[type=tel],input[type=number],input[type=date],input[type=datetime-local],select,textarea{
+    width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line-strong);
+    background:var(--surface);color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:56px;}
+  input:disabled,select:disabled,textarea:disabled{background:var(--surface-2);color:var(--ink-3);cursor:not-allowed;}
+  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+  .role-opt{
+    border:1px solid var(--line-strong);border-radius:10px;padding:10px 10px;cursor:pointer;
+    background:var(--surface);font-size:12.5px;font-weight:600;text-align:left;
+  }
+  .role-opt.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-strong);}
+
+  /* ---------- Dashboard ---------- */
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+  .stat-tile{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:14px 16px;box-shadow:var(--shadow-sm);
+  }
+  .stat-tile .label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700;}
+  .stat-tile .value{font-family:var(--font-display);font-size:30px;line-height:1.1;margin-top:4px;}
+  .stat-tile .sub{font-size:11.5px;color:var(--ink-3);margin-top:3px;}
+  .stat-tile.accent{border-color:var(--accent);}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;}
+  .badge-light{background:var(--good-soft);color:var(--good-ink);}
+  .badge-medium{background:var(--warn-soft);color:var(--warn-ink);}
+  .badge-heavy{background:var(--bad-soft);color:var(--bad-ink);}
+  .badge-info{background:var(--info-soft);color:var(--info-ink);}
+  .badge-neutral{background:var(--surface-2);color:var(--ink-2);}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);}
+  .panel-head h2{font-size:17px;}
+  .panel-body{padding:14px 18px;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .toolbar input,.toolbar select{width:auto;min-width:140px;}
+  .search-box{position:relative;flex:1;min-width:180px;}
+  .search-box input{padding-left:30px;}
+  .search-box svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.5;}
+
+  table{width:100%;border-collapse:collapse;}
+  .table-wrap{overflow-x:auto;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+     padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  td{padding:10px 10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle;white-space:nowrap;}
+  tbody tr{cursor:pointer;}
+  tbody tr:hover{background:var(--surface-2);}
+  .veh-id{font-weight:700;}
+  .veh-sub{font-size:11.5px;color:var(--ink-3);}
+
+  .progress-track{display:flex;gap:2px;width:100%;min-width:160px;}
+  .progress-seg{height:7px;flex:1;border-radius:3px;background:var(--surface-3);}
+  .progress-seg.done{background:var(--good);}
+  .progress-seg.current{background:var(--accent);}
+  .progress-seg.stopped{background:var(--bad);}
+
+  .empty-state{padding:34px 18px;text-align:center;color:var(--ink-3);}
+
+  /* ---------- Detail drawer ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(15,18,24,.45);display:flex;justify-content:flex-end;
+    z-index:40;
+  }
+  .drawer{
+    width:min(720px,100%);background:var(--bg);height:100%;overflow-y:auto;
+    box-shadow:-12px 0 30px rgba(0,0,0,.18);
+  }
+  .drawer-head{
+    position:sticky;top:0;z-index:2;background:var(--surface);border-bottom:1px solid var(--line);
+    padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+  }
+  .drawer-head h2{font-size:22px;}
+  .drawer-head .veh-sub{margin-top:2px;}
+  .drawer-body{padding:16px 20px 60px;display:flex;flex-direction:column;gap:12px;}
+
+  .stage-card{border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden;}
+  .stage-head{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:13px 16px;background:none;border:none;cursor:pointer;text-align:left;
+  }
+  .stage-head .ttl{display:flex;align-items:center;gap:10px;}
+  .stage-num{
+    font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--ink-3);
+    width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .stage-num.done{background:var(--good);color:#fff;}
+  .stage-num.current{background:var(--accent);color:var(--accent-ink);}
+  .stage-head h3{font-size:15px;}
+  .stage-head .role-tag{font-size:10.5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+  .chev{transition:transform .15s;color:var(--ink-3);flex:none;}
+  .stage-card.open .chev{transform:rotate(180deg);}
+  .stage-content{display:none;padding:4px 16px 16px;border-top:1px solid var(--line);}
+  .stage-card.open .stage-content{display:block;}
+  .qc-approve-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:10px;
+    padding:10px 12px;margin-top:10px;
+  }
+  .qc-approve-bar.approved{background:var(--good-soft);border:1px solid var(--good);}
+  .qc-approve-bar .qc-approve-info{display:flex;flex-direction:column;gap:2px;font-size:12.5px;}
+  .qc-approve-bar.approved .qc-approve-info strong{color:var(--good-ink);}
+  .qc-approve-bar .hint{font-size:11.5px;color:var(--ink-3);font-weight:400;max-width:420px;}
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;margin-top:10px;}
+  @media (max-width:640px){.field-grid{grid-template-columns:1fr;}}
+  .field-grid .field.wide{grid-column:1/-1;}
+  .computed-box{
+    background:var(--info-soft);color:var(--info-ink);border-radius:8px;padding:7px 10px;font-size:12.5px;
+    display:flex;justify-content:space-between;gap:8px;font-weight:600;
+  }
+  .readonly-note{font-size:11px;color:var(--ink-3);margin-top:8px;font-style:italic;}
+  .divider-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin:8px 0 -2px;}
+
+  .toast-wrap{position:fixed;bottom:18px;right:18px;z-index:80;display:flex;flex-direction:column;gap:8px;}
+  .toast{background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:var(--shadow-md);max-width:320px;}
+  :root:not([data-theme="light"]) .toast, :root[data-theme="dark"] .toast{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);}
+
+  .footer-note{margin-top:22px;font-size:11.5px;color:var(--ink-3);text-align:center;line-height:1.6;}
+  .kbd{font-family:var(--font-mono);background:var(--surface-2);padding:1px 6px;border-radius:4px;font-size:11px;}
+
+  .modal-mask{position:fixed;inset:0;background:rgba(15,18,24,.45);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
+  .modal-box{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:22px;}
+  .modal-box h2{font-size:20px;margin-bottom:14px;}
+</style>
+
+<div id="app"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* =========================================================================
+   ⚠️ WAJIB DIISI SEBELUM DI-HOSTING ⚠️
+   Tempel URL Web App Google Apps Script Anda di sini (hasil dari langkah
+   "Deploy > New deployment > Web app" di Apps Script — lihat panduan
+   setup yang menyertai file ini). Contoh:
+   'https://script.google.com/macros/s/AKfycb.../exec'
+   Selama masih kosong, aplikasi berjalan dalam MODE PRATINJAU (data contoh,
+   tidak tersimpan permanen) supaya halaman tidak pernah tampil kosong/rusak.
+   ========================================================================= */
+const API_URL = 'https://script.google.com/macros/s/AKfycby4IZkQHFtI3SJ2iYtS_lWu9W29feNIxUNSPosiZwAsWiHISMWGlyPGXbYWNiU-8HQ/exec';
+
+/* Jeda polling (ms) untuk menyegarkan data dari Google Sheets — pendekatan
+   "hampir realtime" karena Apps Script tidak mendukung push/realtime asli
+   seperti Firestore. 8 detik cukup responsif tanpa membebani kuota Apps
+   Script (kuota gratis: 20.000 panggilan URL Fetch/hari per akun). */
+const POLL_INTERVAL_MS = 8000;
+
+/* =========================================================================
+   LACAK BODY & PAINT — konfigurasi data & referensi
+   Satu sumber kebenaran untuk semua dropdown, tahap, dan field.
+   ========================================================================= */
+
+const ROLES = [
+  {id:'sa',       label:'Service Advisor (SA)'},
+  {id:'partman',  label:'Partman'},
+  {id:'qc',       label:'QC Produksi'},
+  {id:'washing',  label:'Washing'},
+  {id:'billing',  label:'Billing'},
+  {id:'admin',    label:'Admin / Kepala Bengkel'},
+];
+
+const BRAND_MODELS = {
+  'Toyota': ['Avanza','Veloz','Innova Zenix','Kijang Innova','Fortuner','Rush','Yaris','Vios','Agya','Calya','Camry','Corolla Cross','Corolla Altis','Raize','Hilux','Land Cruiser','Alphard','Voxy','Sienta','Lainnya'],
+  'Daihatsu': ['Xenia','Terios','Ayla','Sigra','Rocky','Gran Max','Lainnya'],
+  'Honda': ['Brio','Mobilio','BR-V','HR-V','CR-V','Civic','City','Jazz','Lainnya'],
+  'Suzuki': ['Ertiga','XL7','Baleno','Ignis','Carry','APV','Lainnya'],
+  'Mitsubishi': ['Xpander','Pajero Sport','Triton','Outlander','Lainnya'],
+  'Nissan': ['Livina','Magnite','Navara','Serena','Lainnya'],
+  'Mazda': ['Mazda2','Mazda3','CX-3','CX-5','Lainnya'],
+  'Hyundai': ['Creta','Stargazer','Santa Fe','Ioniq 5','Lainnya'],
+  'Kia': ['Seltos','Sonet','Carnival','Lainnya'],
+  'Wuling': ['Confero','Almaz','Air ev','Cortez','Lainnya'],
+  'Isuzu': ['Panther','D-Max','MU-X','Lainnya'],
+  'Mercedes-Benz': ['Lainnya'],
+  'BMW': ['Lainnya'],
+  'Chevrolet': ['Lainnya'],
+  'Datsun': ['Lainnya'],
+  'DFSK': ['Lainnya'],
+  'Lainnya': ['Lainnya'],
+};
+const BRANDS = Object.keys(BRAND_MODELS);
+
+const COLORS = ['Putih','Hitam','Silver','Abu-abu','Merah','Biru','Kuning','Hijau','Coklat','Emas/Gold','Krem','Maroon','Orange','Ungu','Dua Warna / Lainnya'];
+const TRANSMISI_LIST = ['Matic','Manual'];
+const CUSTOMER_TYPES = ['Asuransi','Cash','TWC'];
+const INSURERS = ['Asuransi Astra (Garda Oto)','Adira Insurance','ACA Asuransi','Sinarmas','Tugu Insurance','MSIG Indonesia','ABDA','Asuransi Wahana Tata','AXA Insurance Indonesia','Zurich Asuransi Indonesia','Simas Insurtech','KB Insurance Indonesia','Lainnya'];
+const STATUS_LAPOR_LIST = ['Lapor dari Bengkel','TPL','TLO','Estimasi','SPE','SPK Terbit','Customer Bawa SPK','Ditolak','Batal','Claim Banding'];
+const POSISI_LIST = ['Mobil Dibawa Pelanggan','Tinggal Dibengkel'];
+const SA_LIST = ['Purnomo','Feri','Prayogi','Nizar'];
+const VENDOR_LIST = ['PT Surya Berkarya','Internal','Lainnya'];
+const HASIL_QC_STD = ['OK','NOT OK'];
+const HASIL_QC_WARNA = ['Warna Sesuai','Warna Belum Sesuai'];
+const STATUS_KENDARAAN_FINAL = ['Perlu Balik ke Production','Perlu Washing & Ready Penyerahan','Ready Penyerahan','Perlu SPK Tambahan (Add SPK)','Lainnya'];
+const BERSIH_LIST = ['Bersih','Tidak Bersih'];
+const STATUS_BAYAR_LIST = ['Lunas','Belum','Sebagian'];
+
+function panelStatus(n){
+  if(n===''||n===null||n===undefined||isNaN(n)) return null;
+  n = Number(n);
+  if(n<=3.0) return 'Light';
+  if(n<=7.9) return 'Medium';
+  return 'Heavy';
+}
+
+/* =========================================================================
+   TAHAP & FIELD — 114 fitur dipetakan jadi field flat per kendaraan.
+   Setiap field: {key, label, type, role, options?, unit?, showIf?, required?}
+   type: text | tel | number | date | datetime | select | textarea | checkbox | computed
+   ========================================================================= */
+
+function qcStage(key, title, waitingLabel, hasilOptions, hasMekanik, nextLabel){
+  const fields = [];
+  fields.push({key:'waiting_'+key, label:waitingLabel, type:'computed', unit:'hari'});
+  fields.push({key:key+'_mulai', label:'Tanggal & Jam Mulai '+title, type:'datetime', role:'qc'});
+  if(hasMekanik) fields.push({key:key+'_mekanik', label:'Nama Mekanik', type:'text', role:'qc'});
+  fields.push({key:key+'_qc', label:'Nama QC ('+title+')', type:'text', role:'qc'});
+  fields.push({key:key+'_stop_at', label:'Job Stoppage — Tanggal & Jam', type:'datetime', role:'qc'});
+  fields.push({key:key+'_stop_alasan', label:'Job Stoppage — Alasan', type:'textarea', role:'qc',
+    hint:'Wajib: SA dihubungi untuk perubahan janji penyerahan.'});
+  fields.push({key:key+'_lanjut_at', label:'Lanjutkan Pengerjaan — Tanggal & Jam', type:'datetime', role:'qc'});
+  fields.push({key:key+'_sa_ack', label:'SA Sudah Mengetahui / Dihubungi', type:'checkbox', role:'sa'});
+  fields.push({key:key+'_hasil', label:'Hasil QC', type:'select', role:'qc', options:hasilOptions});
+  fields.push({key:key+'_kesimpulan', label:'Kesimpulan & Approval QC', type:'textarea', role:'qc'});
+  fields.push({key:key+'_selesai', label:'Tanggal & Jam Selesai '+title, type:'datetime', role:'qc'});
+  if(nextLabel) fields.push({key:key+'_serah', label:'Serah Terima ke '+nextLabel, type:'checkbox', role:'qc'});
+  return {key, title:title, roleLabel:'QC '+title, startField:key+'_mulai', finishField:key+'_selesai', fields,
+    approval:{ qcField:key+'_qc', hasilField:key+'_hasil', hasilOk:hasilOptions[0],
+      kesimpulanField:key+'_kesimpulan', selesaiField:key+'_selesai', serahField: nextLabel ? key+'_serah' : null }};
+}
+
+const STAGE_DEFS = [
+  { key:'intake', title:'Pelaporan & Intake', roleLabel:'Service Advisor', startField:'no_rangka', finishField:null,
+    fields:[
+      {key:'no_polisi', label:'Nomor Polisi', type:'text', role:'sa', required:true},
+      {key:'no_rangka', label:'No. Rangka', type:'text', role:'sa', required:true},
+      {key:'brand', label:'Brand', type:'select', role:'sa', options:BRANDS},
+      {key:'model', label:'Model / Tipe', type:'select-dependent', role:'sa', dependsOn:'brand', optionMap:BRAND_MODELS},
+      {key:'warna', label:'Warna', type:'select', role:'sa', options:COLORS},
+      {key:'transmisi', label:'Transmisi', type:'select', role:'sa', options:TRANSMISI_LIST},
+      {key:'tahun', label:'Tahun Kendaraan', type:'number', role:'sa', min:1980, max:2100},
+      {key:'tipe_customer', label:'Tipe Customer', type:'select', role:'sa', options:CUSTOMER_TYPES},
+      {key:'nama_asuransi', label:'Nama Asuransi', type:'select', role:'sa', options:INSURERS, showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'nama_asuransi_lainnya', label:'Nama Asuransi (Lainnya)', type:'text', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'&&v.nama_asuransi==='Lainnya', hint:'Isi nama asuransi karena dipilih "Lainnya".'},
+      {key:'jumlah_panel', label:'Jumlah Panel', type:'number', role:'sa', step:0.1, min:0.1, unit:'panel'},
+      {key:'status_panel', label:'Status Beban Kerja', type:'computed', unit:''},
+      {key:'tanggal_lapor_asuransi', label:'Tanggal Lapor Asuransi', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'tanggal_masuk_cash', label:'Tanggal Masuk / PKB (Cash)', type:'date', role:'sa', showIf:v=>v.tipe_customer!=='Asuransi'},
+      {key:'status_lapor_asuransi', label:'Status Lapor Asuransi', type:'select', role:'sa', options:STATUS_LAPOR_LIST, showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'posisi_kendaraan', label:'Posisi Kendaraan', type:'select', role:'sa', options:POSISI_LIST},
+      {key:'petugas_sa', label:'Petugas SA (Service Advisor)', type:'select', role:'sa', options:SA_LIST},
+      {key:'nama_vendor', label:'Nama Vendor', type:'select', role:'sa', options:VENDOR_LIST},
+      {key:'nama_pemilik', label:'Nama Pemilik', type:'text', role:'sa'},
+      {key:'no_telp_pemilik', label:'No. Telp Pemilik', type:'tel', role:'sa', hint:'Harus diawali 62, tanpa spasi/strip.'},
+      {key:'tanggal_reminder_spk', label:'Tanggal Reminder SPK', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'keterangan_reminder', label:'Keterangan Hasil Reminder SPK', type:'textarea', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'tanggal_terbit_spk', label:'Tanggal Terbit SPK', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'leadtime_terbit_spk', label:'Leadtime Terbit SPK', type:'computed', unit:'hari'},
+      {key:'masa_tunggu_spk', label:'Masa Tunggu SPK (s/d hari ini)', type:'computed', unit:'hari'},
+    ]},
+  { key:'partman', title:'Pengadaan Part', roleLabel:'Partman', startField:'tanggal_order_part', finishField:'tanggal_part_arrival',
+    fields:[
+      {key:'tanggal_order_part', label:'Tanggal Order Part', type:'date', role:'partman'},
+      {key:'etd', label:'Estimated Time of Departure (ETD)', type:'date', role:'partman'},
+      {key:'tanggal_part_arrival', label:'Tanggal Part Arrival (Aktual)', type:'date', role:'partman'},
+      {key:'perubahan_etd', label:'Perubahan Tanggal ETD', type:'date', role:'partman'},
+      {key:'alasan_perubahan_etd', label:'Alasan Perubahan ETD', type:'textarea', role:'partman'},
+    ]},
+  { key:'produksi', title:'Masuk Produksi', roleLabel:'Service Advisor', startField:'tanggal_masuk_asuransi', finishField:null,
+    fields:[
+      {key:'tanggal_masuk_asuransi', label:'Tanggal Masuk / PKB (Asuransi)', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'tgl_janji_penyerahan', label:'Tanggal Janji Penyerahan (Target)', type:'date', role:'sa'},
+      {key:'reschedule_janji_penyerahan', label:'Reschedule Janji Penyerahan', type:'date', role:'sa', hint:'Isi hanya jika tanggal janji penyerahan berubah dari target awal. Diproses oleh SA.'},
+      {key:'waiting_production', label:'Waiting Production', type:'computed', unit:'hari'},
+    ]},
+  qcStage('panel_repair','Panel Repair','Waiting Production (dari Part Arrival / Masuk)',HASIL_QC_STD,true,'QC Persiapan & Dempul'),
+  qcStage('persiapan_dempul','Persiapan & Dempul','Waiting Persiapan & Dempul',HASIL_QC_STD,true,'QC Colors Mixing'),
+  qcStage('colors_mixing','Colors Mixing','Waiting Colors Mixing',HASIL_QC_WARNA,true,'QC Painting'),
+  qcStage('painting','Painting','Waiting Painting',HASIL_QC_STD,true,'QC Poles'),
+  qcStage('poles','Poles','Waiting Poles',HASIL_QC_STD,true,'QC Pemasangan'),
+  qcStage('pemasangan','Pemasangan','Waiting Pemasangan',HASIL_QC_STD,true,'QC Final Inspection'),
+  { key:'final_inspection', title:'Final Inspection', roleLabel:'QC Final Inspection', startField:'final_inspection_mulai', finishField:'final_inspection_selesai',
+    approval:{ qcField:'final_inspection_qc', hasilField:'final_inspection_hasil', hasilOk:HASIL_QC_STD[0],
+      kesimpulanField:'final_inspection_kesimpulan', selesaiField:'final_inspection_selesai', serahField:'final_inspection_serah' },
+    fields:[
+      {key:'waiting_final_inspection', label:'Waiting Final Inspection', type:'computed', unit:'hari'},
+      {key:'final_inspection_mulai', label:'Tanggal & Jam Mulai Final Inspection', type:'datetime', role:'qc'},
+      {key:'final_inspection_qc', label:'Nama QC (Final Inspection)', type:'text', role:'qc'},
+      {key:'final_inspection_hasil', label:'Hasil QC', type:'select', role:'qc', options:HASIL_QC_STD},
+      {key:'final_inspection_kesimpulan', label:'Kesimpulan & Approval QC', type:'textarea', role:'qc'},
+      {key:'final_status_kendaraan', label:'Status Kendaraan', type:'select', role:'qc', options:STATUS_KENDARAAN_FINAL},
+      {key:'final_status_lainnya', label:'Keterangan Status Lainnya', type:'text', role:'qc', showIf:v=>v.final_status_kendaraan==='Lainnya'},
+      {key:'final_inspection_selesai', label:'Tanggal & Jam Selesai Final Inspection', type:'datetime', role:'qc'},
+      {key:'final_inspection_serah', label:'Serah Terima ke SA', type:'checkbox', role:'qc'},
+    ]},
+  { key:'washing', title:'Washing', roleLabel:'Washing', startField:'washing_mulai', finishField:'washing_selesai',
+    fields:[
+      {key:'waiting_washing', label:'Waiting Washing', type:'computed', unit:'hari'},
+      {key:'washing_mulai', label:'Tanggal & Jam Mulai Washing', type:'datetime', role:'washing'},
+      {key:'washing_petugas', label:'Nama Petugas Washing', type:'text', role:'washing'},
+      {key:'washing_interior', label:'Hasil Washing — Interior', type:'select', role:'washing', options:BERSIH_LIST},
+      {key:'washing_eksterior', label:'Hasil Washing — Eksterior', type:'select', role:'washing', options:BERSIH_LIST},
+      {key:'washing_kesimpulan', label:'Kesimpulan & Approval QC', type:'textarea', role:'washing'},
+      {key:'washing_selesai', label:'Tanggal & Jam Selesai Washing', type:'datetime', role:'washing'},
+    ]},
+  { key:'penyerahan', title:'Penyerahan Kendaraan', roleLabel:'Service Advisor', startField:'penyerahan_mulai', finishField:'penyerahan_selesai',
+    fields:[
+      {key:'waiting_penyerahan', label:'Waiting Penyerahan', type:'computed', unit:'hari'},
+      {key:'penyerahan_mulai', label:'Tanggal Mulai Penyerahan', type:'date', role:'sa'},
+      {key:'penyerahan_selesai', label:'Tanggal Selesai Penyerahan (Aktual)', type:'date', role:'sa'},
+    ]},
+  { key:'billing', title:'Billing & Pembayaran', roleLabel:'Billing', startField:'billing_mulai', finishField:null,
+    fields:[
+      {key:'tanggal_berkas_ke_billing', label:'Tanggal Penyerahan Berkas ke Billing', type:'date', role:'sa'},
+      {key:'waiting_invoice', label:'Waiting Invoice', type:'computed', unit:'hari'},
+      {key:'billing_mulai', label:'Tanggal Mulai Billing', type:'date', role:'billing'},
+      {key:'no_invoice', label:'Nomor Invoice', type:'text', role:'billing'},
+      {key:'nilai_invoice', label:'Nilai Invoice', type:'number', role:'billing', unit:'Rp'},
+      {key:'tanggal_penagihan_asuransi', label:'Tanggal Penagihan ke Asuransi', type:'date', role:'billing', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'tanggal_bayar', label:'Tanggal Bayar (Diterima)', type:'date', role:'billing'},
+      {key:'status_bayar', label:'Status Bayar', type:'select', role:'billing', options:STATUS_BAYAR_LIST},
+      {key:'umur_piutang', label:'Umur Piutang', type:'computed', unit:'hari'},
+    ]},
+];
+
+const ALL_FIELDS = STAGE_DEFS.flatMap(s=>s.fields);
+
+/* =========================================================================
+   UTIL TANGGAL & FORMAT
+   ========================================================================= */
+function toDate(str){
+  if(!str) return null;
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function daysBetween(a,b){
+  const da = toDate(a), db = toDate(b);
+  if(!da||!db) return null;
+  const diff = (db.getTime()-da.getTime())/86400000;
+  return Math.round(diff*10)/10;
+}
+function fmtDate(str){
+  const d = toDate(str);
+  if(!d) return '—';
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+}
+function fmtDateTime(str){
+  const d = toDate(str);
+  if(!d) return '—';
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})+' · '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtNum(n){
+  if(n===null||n===undefined||n==='') return '—';
+  return Number(n).toLocaleString('id-ID');
+}
+function fmtRupiah(n){
+  if(n===null||n===undefined||n==='') return '—';
+  return 'Rp'+Number(n).toLocaleString('id-ID');
+}
+function esc(s){
+  return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function insurerLabel(v){
+  if(v.nama_asuransi==='Lainnya') return v.nama_asuransi_lainnya || 'Lainnya (belum diisi)';
+  return v.nama_asuransi;
+}
+function targetPenyerahan(v){
+  return v.reschedule_janji_penyerahan || v.tgl_janji_penyerahan || null;
+}
+function debounce(fn, ms){
+  let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+}
+
+/* =========================================================================
+   ENGINE PERHITUNGAN — leadtime, status, tahap berjalan
+   ========================================================================= */
+function computeDerived(v){
+  const c = {};
+  c.status_panel = panelStatus(v.jumlah_panel);
+  c.leadtime_terbit_spk = daysBetween(v.tanggal_lapor_asuransi, v.tanggal_terbit_spk);
+  c.masa_tunggu_spk = (v.tipe_customer==='Asuransi' && v.tanggal_lapor_asuransi && !v.tanggal_terbit_spk)
+    ? daysBetween(v.tanggal_lapor_asuransi, todayISO()) : null;
+
+  const masukBasis = v.tipe_customer==='Asuransi' ? v.tanggal_masuk_asuransi : v.tanggal_masuk_cash;
+  const partBasis = v.tanggal_part_arrival || masukBasis;
+  c.waiting_production = daysBetween(partBasis, v.panel_repair_mulai);
+  c.waiting_panel_repair = c.waiting_production;
+  c.waiting_persiapan_dempul = daysBetween(v.panel_repair_selesai, v.persiapan_dempul_mulai);
+  c.waiting_colors_mixing = daysBetween(v.persiapan_dempul_selesai, v.colors_mixing_mulai);
+  c.waiting_painting = daysBetween(v.colors_mixing_selesai, v.painting_mulai);
+  c.waiting_poles = daysBetween(v.painting_selesai, v.poles_mulai);
+  c.waiting_pemasangan = daysBetween(v.poles_selesai, v.pemasangan_mulai);
+  c.waiting_final_inspection = daysBetween(v.pemasangan_selesai, v.final_inspection_mulai);
+  c.waiting_washing = daysBetween(v.final_inspection_selesai, v.washing_mulai);
+  c.waiting_penyerahan = daysBetween(v.washing_selesai, v.penyerahan_mulai);
+  c.waiting_invoice = daysBetween(v.tanggal_berkas_ke_billing, v.billing_mulai);
+
+  const piutangBasis = v.tanggal_penagihan_asuransi || v.billing_mulai || v.tanggal_berkas_ke_billing;
+  if(piutangBasis){
+    const end = (v.status_bayar==='Lunas' && v.tanggal_bayar) ? v.tanggal_bayar : todayISO();
+    c.umur_piutang = daysBetween(piutangBasis, end);
+  } else { c.umur_piutang = null; }
+
+  c.total_leadtime = daysBetween(masukBasis, v.penyerahan_selesai);
+  return c;
+}
+
+function stageState(idx, v){
+  const stage = STAGE_DEFS[idx];
+  const started = idx===0 ? true : !!(stage.startField && v[stage.startField]);
+  let finished = !!(stage.finishField && v[stage.finishField]);
+  if(stage.key==='billing' && v.status_bayar==='Lunas') finished = true;
+  const next = STAGE_DEFS[idx+1];
+  if(!finished && next && next.startField && v[next.startField]) finished = true;
+  const stopKey = stage.key+'_stop_at', resumeKey = stage.key+'_lanjut_at';
+  const stopped = started && !finished && !!v[stopKey] && !v[resumeKey];
+  return {started, finished, stopped};
+}
+
+function vehicleSummary(v){
+  let currentIdx = STAGE_DEFS.length; // default: semua selesai
+  let anyStopped = false;
+  for(let i=0;i<STAGE_DEFS.length;i++){
+    const st = stageState(i, v);
+    if(st.stopped) anyStopped = true;
+    if(st.started && !st.finished){ currentIdx = i; break; }
+  }
+  const allDone = currentIdx===STAGE_DEFS.length;
+  return {
+    currentIdx,
+    currentLabel: allDone ? 'Selesai' : STAGE_DEFS[currentIdx].title,
+    allDone,
+    anyStopped,
+  };
+}
+
+/* =========================================================================
+   DATA CONTOH (dipakai hanya saat API_URL belum diisi / gagal tersambung ke Google Sheets)
+   ========================================================================= */
+const DEMO_VEHICLES = [
+  { id:'demo-1', createdAt: Date.now()-1000*60*60*24*18,
+    no_polisi:'B 1234 XYZ (contoh)', no_rangka:'MHFXX1JPX0K123456 (contoh)', brand:'Toyota', model:'Avanza', warna:'Putih', transmisi:'Matic', tahun:2022,
+    tipe_customer:'Asuransi', nama_asuransi:'Asuransi Astra (Garda Oto)', jumlah_panel:4.5,
+    tanggal_lapor_asuransi:'2026-08-24', status_lapor_asuransi:'SPK Terbit', posisi_kendaraan:'Tinggal Dibengkel',
+    petugas_sa:'Feri', nama_vendor:'Internal', nama_pemilik:'Bpk. Ahmad (contoh)', no_telp_pemilik:'6281234567890',
+    tanggal_reminder_spk:'2026-08-26', keterangan_reminder:'Sudah dikonfirmasi customer',
+    tanggal_terbit_spk:'2026-08-28', tanggal_masuk_asuransi:'2026-08-24', tgl_janji_penyerahan:'2026-09-15',
+    tanggal_order_part:'2026-08-28', etd:'2026-09-02', tanggal_part_arrival:'2026-09-02',
+    panel_repair_mulai:'2026-09-03T08:00', panel_repair_mekanik:'Joko', panel_repair_qc:'Sutrisno',
+    panel_repair_hasil:'OK', panel_repair_kesimpulan:'Panel sudah rata, lanjut proses dempul.', panel_repair_selesai:'2026-09-05T16:00', panel_repair_serah:true,
+    persiapan_dempul_mulai:'2026-09-06T08:00', persiapan_dempul_mekanik:'Rudi', persiapan_dempul_qc:'Sutrisno',
+    persiapan_dempul_stop_at:'2026-09-07T10:00', persiapan_dempul_stop_alasan:'Menunggu dempul kering, cuaca lembap',
+  },
+  { id:'demo-2', createdAt: Date.now()-1000*60*60*24*5,
+    no_polisi:'D 5678 ABC (contoh)', no_rangka:'MHKXX2ABC1L654321 (contoh)', brand:'Honda', model:'Brio', warna:'Merah', transmisi:'Manual', tahun:2021,
+    tipe_customer:'Cash', jumlah_panel:1.5,
+    tanggal_masuk_cash:'2026-09-05', posisi_kendaraan:'Mobil Dibawa Pelanggan',
+    petugas_sa:'Nizar', nama_vendor:'PT Surya Berkarya', nama_pemilik:'Ibu Siti (contoh)', no_telp_pemilik:'6289876543210',
+    tgl_janji_penyerahan:'2026-09-12',
+    tanggal_order_part:'2026-09-05', tanggal_part_arrival:'2026-09-06',
+  },
+];
+
+/* =========================================================================
+   STATE APLIKASI
+   ========================================================================= */
+const STATE = {
+  demoMode:false, connError:'', pollTimer:null, syncing:false,
+  role:null, userName:'',
+  vehicles:[], unsub:null,
+  openId:null, openStageKeys:new Set(),
+  showNewModal:false,
+  search:'', filterStage:'all', filterCustomer:'all',
+  pendingRole:null,
+};
+
+try{
+  const saved = JSON.parse(localStorage.getItem('bp_session')||'null');
+  if(saved && saved.role){ STATE.pendingRole = saved.role; STATE.userName = saved.userName||''; }
+}catch(e){ /* localStorage tak tersedia di pratinjau ini — lanjut tanpa ingatan sesi */ }
+
+function saveSession(){
+  try{ localStorage.setItem('bp_session', JSON.stringify({role:STATE.role, userName:STATE.userName})); }catch(e){}
+}
+
+/* =========================================================================
+   TOAST
+   ========================================================================= */
+function toast(msg, ms){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className='toast'; el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),320); }, ms||3200);
+}
+
+/* =========================================================================
+   FOKUS TERJAGA SAAT RE-RENDER (supaya input tidak kehilangan kursor)
+   ========================================================================= */
+function withFocusPreserved(fn){
+  const active = document.activeElement;
+  const id = active && active.id;
+  const tag = active && active.tagName;
+  const hasSel = active && 'selectionStart' in active;
+  const selStart = hasSel ? active.selectionStart : null;
+  const selEnd = hasSel ? active.selectionEnd : null;
+  fn();
+  if(id){
+    const el = document.getElementById(id);
+    if(el && (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')){
+      el.focus();
+      if(selStart!=null && el.setSelectionRange){ try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
+    }
+  }
+}
+
+/* =========================================================================
+   RENDER — GATE PERAN
+   ========================================================================= */
+function renderGate(){
+  const chosen = STATE.pendingRole;
+  return `
+  <div class="gate-wrap">
+    <div class="gate-card">
+      <h2>PERINTIS BODY &amp; PAINT</h2>
+      <p class="sub">Pilih peran Anda untuk masuk. Ini hanya bantuan tampilan (kolom di luar peran akan tampil non-aktif) — bukan kata sandi.</p>
+      <div class="field">
+        <label for="gateName">Nama Anda</label>
+        <input type="text" id="gateName" value="${esc(STATE.userName)}" placeholder="mis. Feri">
+      </div>
+      <div class="field"><label>Peran</label></div>
+      <div class="role-grid">
+        ${ROLES.map(r=>`<button type="button" class="role-opt ${chosen===r.id?'active':''}" data-action="pick-role" data-role="${r.id}">${esc(r.label)}</button>`).join('')}
+      </div>
+      <button class="btn btn-accent" style="width:100%;justify-content:center;padding:11px;" data-action="enter-app" ${chosen?'':'disabled'}>Masuk Aplikasi</button>
+      ${STATE.demoMode?`<p class="sub" style="margin-top:14px;margin-bottom:0;">Mode pratinjau: ${STATE.connError?'gagal tersambung ke Google Sheets ('+esc(STATE.connError)+')':'API_URL belum diisi di file HTML'} — data contoh ditampilkan dan tidak akan tersimpan. Lihat panduan setup Google Sheets untuk mengaktifkan penyimpanan permanen.</p>`:''}
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   RENDER — SHELL (topbar, dashboard, tabel)
+   ========================================================================= */
+function filteredVehicles(){
+  const q = STATE.search.trim().toLowerCase();
+  return STATE.vehicles.filter(v=>{
+    const sum = vehicleSummary(v);
+    if(STATE.filterStage!=='all'){
+      if(STATE.filterStage==='selesai' && !sum.allDone) return false;
+      if(STATE.filterStage!=='selesai' && (sum.allDone || STAGE_DEFS[sum.currentIdx].key!==STATE.filterStage)) return false;
+    }
+    if(STATE.filterCustomer!=='all' && v.tipe_customer!==STATE.filterCustomer) return false;
+    if(q){
+      const hay = [v.no_polisi,v.no_rangka,v.nama_pemilik,v.no_invoice,v.brand,v.model].map(x=>String(x||'').toLowerCase()).join(' ');
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderTopbar(){
+  const roleLabel = (ROLES.find(r=>r.id===STATE.role)||{}).label || STATE.role;
+  return `
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">PB</div>
+      <div class="brand-text">
+        <h1>PERINTIS BODY &amp; PAINT</h1>
+        <p>Tracking Leadtime &amp; Progress Kendaraan</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="role-pill"><span class="dot" style="background:${STATE.demoMode?'var(--warn)':'var(--good)'};"></span>${esc(STATE.userName||'—')} · ${esc(roleLabel)}</div>
+      ${STATE.demoMode?'':'<button class="btn btn-ghost btn-sm" data-action="refresh-now" title="Segarkan data dari Google Sheets sekarang">⟳ Segarkan</button>'}
+      <button class="btn btn-ghost btn-sm" data-action="switch-role">Ganti Peran</button>
+      <button class="btn btn-sm" data-action="export-csv">Export CSV</button>
+      ${(STATE.role==='sa'||STATE.role==='admin')?'<button class="btn btn-accent btn-sm" data-action="new-vehicle">+ Kendaraan Baru</button>':''}
+    </div>
+  </div>`;
+}
+
+function renderStatTiles(list){
+  const active = list.filter(v=>!vehicleSummary(v).allDone);
+  const withTotal = list.map(v=>computeDerived(v).total_leadtime).filter(x=>x!=null);
+  const avgLeadtime = withTotal.length ? (withTotal.reduce((a,b)=>a+b,0)/withTotal.length) : null;
+  const byPanel = {Light:0,Medium:0,Heavy:0};
+  active.forEach(v=>{ const s=panelStatus(v.jumlah_panel); if(s) byPanel[s]++; });
+  const stopped = active.filter(v=>vehicleSummary(v).anyStopped).length;
+  const today = todayISO();
+  const overdue = active.filter(v=>{ const t=targetPenyerahan(v); return t && t < today; }).length;
+
+  return `
+  <div class="stat-row">
+    <div class="stat-tile accent">
+      <div class="label">Kendaraan Aktif</div>
+      <div class="value mono">${active.length}</div>
+      <div class="sub">dari ${list.length} total kendaraan</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Rata-rata Leadtime</div>
+      <div class="value mono">${avgLeadtime!=null?avgLeadtime.toFixed(1):'—'}</div>
+      <div class="sub">hari (kendaraan selesai)</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Beban Kerja Aktif</div>
+      <div class="value" style="font-size:15px;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        <span class="badge badge-light">Light ${byPanel.Light}</span>
+        <span class="badge badge-medium">Medium ${byPanel.Medium}</span>
+        <span class="badge badge-heavy">Heavy ${byPanel.Heavy}</span>
+      </div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Job Stoppage Aktif</div>
+      <div class="value mono" style="color:${stopped>0?'var(--bad)':'inherit'}">${stopped}</div>
+      <div class="sub">perlu tindak lanjut SA</div>
+    </div>
+    <div class="stat-tile">
+      <div class="label">Lewat Janji Penyerahan</div>
+      <div class="value mono" style="color:${overdue>0?'var(--warn)':'inherit'}">${overdue}</div>
+      <div class="sub">kendaraan overdue</div>
+    </div>
+  </div>`;
+}
+
+function renderDistribution(list){
+  const counts = STAGE_DEFS.map(s=>0);
+  let selesai = 0;
+  list.forEach(v=>{
+    const sum = vehicleSummary(v);
+    if(sum.allDone) selesai++; else counts[sum.currentIdx]++;
+  });
+  const rows = STAGE_DEFS.map((s,i)=>({label:s.title, n:counts[i]})).concat([{label:'Selesai', n:selesai}]);
+  const max = Math.max(1, ...rows.map(r=>r.n));
+  return `
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="panel-head"><h2>Distribusi Tahap</h2><span class="sub" style="font-size:11.5px;color:var(--ink-3);">jumlah kendaraan per tahap saat ini</span></div>
+    <div class="panel-body" style="display:flex;flex-direction:column;gap:7px;">
+      ${rows.map(r=>`
+        <div style="display:grid;grid-template-columns:150px 1fr 28px;align-items:center;gap:10px;">
+          <span style="font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.label)}</span>
+          <div style="background:var(--surface-2);border-radius:5px;height:9px;overflow:hidden;">
+            <div style="width:${(r.n/max*100).toFixed(0)}%;background:${r.label==='Selesai'?'var(--good)':'var(--accent)'};height:100%;border-radius:5px;"></div>
+          </div>
+          <span class="mono" style="font-size:12px;text-align:right;">${r.n}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function progressBarHTML(v){
+  const sum = vehicleSummary(v);
+  return `<div class="progress-track">${STAGE_DEFS.map((s,i)=>{
+    const st = stageState(i, v);
+    let cls='progress-seg';
+    if(st.stopped) cls+=' stopped';
+    else if(i<sum.currentIdx || sum.allDone) cls+=' done';
+    else if(i===sum.currentIdx) cls+=' current';
+    return `<div class="${cls}" title="${esc(s.title)}"></div>`;
+  }).join('')}</div>`;
+}
+
+function renderTable(list){
+  const rows = list.map((v,i)=>{
+    const sum = vehicleSummary(v);
+    const badgeClass = v.jumlah_panel!=null ? ('badge-'+(panelStatus(v.jumlah_panel)||'').toLowerCase()) : 'badge-neutral';
+    return `
+    <tr data-action="open-vehicle" data-id="${esc(v.id)}">
+      <td class="mono">${i+1}</td>
+      <td class="mono veh-id">${esc(v.no_polisi||'—')}</td>
+      <td>
+        <div class="veh-id">${esc(v.no_rangka||'(belum diisi)')}</div>
+        <div class="veh-sub">${esc(v.brand||'')} ${esc(v.model||'')} · ${esc(v.warna||'')}</div>
+      </td>
+      <td>
+        <div>${esc(v.nama_pemilik||'—')}</div>
+        <div class="veh-sub">${esc(v.tipe_customer||'—')}${v.tipe_customer==='Asuransi'&&v.nama_asuransi?' · '+esc(insurerLabel(v)):''}</div>
+      </td>
+      <td>${v.jumlah_panel!=null?`<span class="badge ${badgeClass}">${esc(panelStatus(v.jumlah_panel)||'—')} · ${esc(v.jumlah_panel)}p</span>`:'—'}</td>
+      <td style="min-width:170px;">
+        <div style="font-size:12px;margin-bottom:4px;${sum.anyStopped?'color:var(--bad);font-weight:700;':''}">${esc(sum.currentLabel)}${sum.anyStopped?' ⏸':''}</div>
+        ${progressBarHTML(v)}
+      </td>
+      <td>${esc(v.petugas_sa||'—')}</td>
+      <td>${targetPenyerahan(v)?fmtDate(targetPenyerahan(v)):'—'}${v.reschedule_janji_penyerahan?'<div class="veh-sub" style="color:var(--warn);">Reschedule</div>':''}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Daftar Kendaraan</h2>
+      <div class="toolbar">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="searchInput" placeholder="Cari no polisi / no rangka / nama pemilik…" value="${esc(STATE.search)}">
+        </div>
+        <select id="filterStage">
+          <option value="all" ${STATE.filterStage==='all'?'selected':''}>Semua Tahap</option>
+          ${STAGE_DEFS.map(s=>`<option value="${s.key}" ${STATE.filterStage===s.key?'selected':''}>${esc(s.title)}</option>`).join('')}
+          <option value="selesai" ${STATE.filterStage==='selesai'?'selected':''}>Selesai</option>
+        </select>
+        <select id="filterCustomer">
+          <option value="all" ${STATE.filterCustomer==='all'?'selected':''}>Semua Customer</option>
+          ${CUSTOMER_TYPES.map(c=>`<option value="${c}" ${STATE.filterCustomer===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>No</th><th>No Polisi</th><th>Kendaraan</th><th>Pemilik</th><th>Beban</th><th>Tahap &amp; Progress</th><th>SA</th><th>Janji</th>
+        </tr></thead>
+        <tbody>${rows || `<tr><td colspan="8"><div class="empty-state">Belum ada kendaraan. Klik “+ Kendaraan Baru” untuk mulai.</div></td></tr>`}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function renderShell(){
+  const list = filteredVehicles();
+  return `
+    ${renderTopbar()}
+    ${renderStatTiles(STATE.vehicles)}
+    ${renderDistribution(STATE.vehicles)}
+    ${renderTable(list)}
+    <p class="footer-note">${STATE.demoMode
+      ? 'Mode pratinjau — data contoh, tidak tersimpan permanen. Lihat panduan setup Google Sheets untuk mengaktifkan penyimpanan sungguhan.'
+      : 'Data tersimpan otomatis ke Google Sheets Anda &amp; disegarkan tiap '+Math.round(POLL_INTERVAL_MS/1000)+' detik supaya tim melihat data terbaru. Gunakan <span class="kbd">⟳ Segarkan</span> untuk memuat ulang sekarang, atau <span class="kbd">Export CSV</span> untuk cadangan/salinan offline.'}</p>
+  `;
+}
+
+/* =========================================================================
+   RENDER — FIELD & STAGE CARD (drawer detail kendaraan)
+   ========================================================================= */
+function fieldEditable(f){
+  return STATE.role==='admin' || STATE.role===f.role;
+}
+
+function buildFieldHTML(f, v, computed){
+  if(f.showIf && !f.showIf(v)) return '';
+  const fid = 'f_'+v.id+'_'+f.key;
+
+  if(f.type==='computed'){
+    let val = computed[f.key];
+    let display;
+    if(f.key==='status_panel'){
+      display = val ? `<span class="badge badge-${val.toLowerCase()}">${val}</span>` : '—';
+    } else {
+      display = (val==null) ? '—' : (fmtNum(val)+(f.unit?' '+f.unit:''));
+    }
+    return `<div class="field wide"><div class="computed-box"><span>${esc(f.label)}</span><span class="mono">${display}</span></div></div>`;
+  }
+
+  const editable = fieldEditable(f);
+  const disabledAttr = editable ? '' : 'disabled';
+  const hint = f.hint ? `<span class="hint"> — ${esc(f.hint)}</span>` : '';
+  let control = '';
+  const val = v[f.key];
+
+  if(f.type==='select'){
+    control = `<select id="${fid}" data-field="${f.key}" data-vid="${v.id}" ${disabledAttr}>
+      <option value="">— pilih —</option>
+      ${f.options.map(o=>`<option value="${esc(o)}" ${val===o?'selected':''}>${esc(o)}</option>`).join('')}
+    </select>`;
+  } else if(f.type==='select-dependent'){
+    const opts = (f.optionMap[v[f.dependsOn]] || []);
+    control = `<select id="${fid}" data-field="${f.key}" data-vid="${v.id}" ${disabledAttr} ${opts.length?'':'disabled'}>
+      <option value="">${opts.length?'— pilih —':'pilih brand dahulu'}</option>
+      ${opts.map(o=>`<option value="${esc(o)}" ${val===o?'selected':''}>${esc(o)}</option>`).join('')}
+    </select>`;
+  } else if(f.type==='textarea'){
+    control = `<textarea id="${fid}" data-field="${f.key}" data-vid="${v.id}" ${disabledAttr}>${esc(val||'')}</textarea>`;
+  } else if(f.type==='checkbox'){
+    return `<div class="field">
+      <label style="display:flex;align-items:center;gap:8px;flex-direction:row;">
+        <input type="checkbox" id="${fid}" data-field="${f.key}" data-vid="${v.id}" ${val?'checked':''} ${disabledAttr} style="width:auto;">
+        ${esc(f.label)}${hint}
+      </label>
+    </div>`;
+  } else if(f.type==='number'){
+    control = `<input type="number" id="${fid}" data-field="${f.key}" data-vid="${v.id}" value="${val!=null?esc(val):''}" ${f.step?`step="${f.step}"`:''} ${f.min!=null?`min="${f.min}"`:''} ${disabledAttr}>`;
+  } else if(f.type==='date'){
+    control = `<input type="date" id="${fid}" data-field="${f.key}" data-vid="${v.id}" value="${esc(val||'')}" ${disabledAttr}>`;
+  } else if(f.type==='datetime'){
+    const dv = val ? String(val).slice(0,16) : '';
+    control = `<input type="datetime-local" id="${fid}" data-field="${f.key}" data-vid="${v.id}" value="${esc(dv)}" ${disabledAttr}>`;
+  } else if(f.type==='tel'){
+    control = `<input type="tel" id="${fid}" data-field="${f.key}" data-vid="${v.id}" value="${esc(val||'')}" placeholder="62812xxxxxxx" ${disabledAttr}>`;
+  } else {
+    control = `<input type="text" id="${fid}" data-field="${f.key}" data-vid="${v.id}" value="${esc(val||'')}" ${disabledAttr}>`;
+  }
+
+  const wide = (f.type==='textarea') ? ' wide' : '';
+  return `<div class="field${wide}"><label for="${fid}">${esc(f.label)}${hint}</label>${control}</div>`;
+}
+
+function buildApprovalBar(stage, v){
+  const ap = stage.approval;
+  if(!ap) return '';
+  const editable = fieldEditable({role:'qc'});
+  const qcName = (v[ap.qcField]||'').trim();
+  const approved = !!v[ap.selesaiField] && v[ap.hasilField]===ap.hasilOk;
+  return `
+  <div class="qc-approve-bar ${approved?'approved':''}">
+    <div class="qc-approve-info">
+      <strong>${approved?'✓ Disetujui':'Belum disetujui'}</strong>
+      <span class="hint">${approved
+        ? 'Hasil: '+esc(v[ap.hasilField])+' · '+esc(fmtDateTime(v[ap.selesaiField]))
+        : 'Isi Nama QC di bawah, lalu klik tombol ini — Hasil QC, Kesimpulan, dan Tanggal Selesai terisi otomatis.'}</span>
+    </div>
+    <button type="button" class="btn btn-accent btn-sm" data-action="qc-approve" data-stage="${stage.key}" data-vid="${esc(v.id)}" ${editable?'':'disabled'} title="${qcName?'':'Isi Nama QC dahulu'}">✓ Setujui (Approval QC)</button>
+  </div>`;
+}
+
+function buildStageCard(stage, idx, v, computed, summary){
+  const st = stageState(idx, v);
+  const key = STATE.openId+':'+stage.key;
+  const isOpen = STATE.openStageKeys.has(key);
+  let numCls = 'stage-num';
+  if(st.finished) numCls+=' done'; else if(idx===summary.currentIdx) numCls+=' current';
+  const fieldsHTML = stage.fields.map(f=>buildFieldHTML(f, v, computed)).join('');
+  return `
+  <div class="stage-card ${isOpen?'open':''}">
+    <button type="button" class="stage-head" data-action="toggle-stage" data-key="${key}">
+      <span class="ttl">
+        <span class="${numCls}">${st.finished?'✓':(idx+1)}</span>
+        <span><h3>${esc(stage.title)}</h3><span class="role-tag">${esc(stage.roleLabel)}</span></span>
+      </span>
+      <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="stage-content">
+      ${buildApprovalBar(stage, v)}
+      <div class="field-grid">${fieldsHTML}</div>
+    </div>
+  </div>`;
+}
+
+function renderDrawer(){
+  const v = STATE.vehicles.find(x=>x.id===STATE.openId);
+  if(!v) return '';
+  const computed = computeDerived(v);
+  const summary = vehicleSummary(v);
+  return `
+  <div class="overlay" data-action="close-drawer-overlay">
+    <div class="drawer" data-stop-close>
+      <div class="drawer-head">
+        <div>
+          <h2>${esc(v.no_polisi||v.no_rangka||'Kendaraan baru')}</h2>
+          <div class="veh-sub">No. Rangka: ${esc(v.no_rangka||'—')} · ${esc(v.brand||'')} ${esc(v.model||'')} · ${esc(v.warna||'')} · ${esc(v.tipe_customer||'—')} ${v.jumlah_panel!=null?'· '+esc(panelStatus(v.jumlah_panel))+' ('+esc(v.jumlah_panel)+'p)':''}</div>
+          <div class="veh-sub" style="margin-top:4px;font-weight:700;color:${summary.anyStopped?'var(--bad)':'var(--accent)'};">Tahap saat ini: ${esc(summary.currentLabel)}${summary.anyStopped?' — Job Stoppage aktif ⏸':''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex:none;">
+          <button class="btn btn-sm" data-action="wa-link" data-id="${esc(v.id)}">Salin Update WA</button>
+          <button class="btn btn-ghost btn-sm" data-action="close-drawer">✕</button>
+        </div>
+      </div>
+      <div class="drawer-body">
+        ${STAGE_DEFS.map((s,i)=>buildStageCard(s,i,v,computed,summary)).join('')}
+        <p class="readonly-note">Kolom di luar peran Anda (${esc((ROLES.find(r=>r.id===STATE.role)||{}).label||'')}) tampil non-aktif. Ganti peran dari topbar bila perlu mengisi bagian lain.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   RENDER — MODAL KENDARAAN BARU
+   ========================================================================= */
+function renderNewModal(){
+  if(!STATE.showNewModal) return '';
+  return `
+  <div class="modal-mask" data-action="close-modal-overlay">
+    <div class="modal-box" data-stop-close>
+      <h2>Kendaraan Baru</h2>
+      <div class="field-grid">
+        <div class="field"><label for="nvPolisi">Nomor Polisi *</label><input type="text" id="nvPolisi" required placeholder="mis. B 1234 XYZ"></div>
+        <div class="field"><label for="nvRangka">No. Rangka *</label><input type="text" id="nvRangka" required></div>
+        <div class="field"><label for="nvBrand">Brand</label>
+          <select id="nvBrand">${BRANDS.map(b=>`<option value="${b}" ${b==='Toyota'?'selected':''}>${b}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label for="nvModel">Model / Tipe</label><select id="nvModel">${(BRAND_MODELS['Toyota']||[]).map(m=>`<option>${m}</option>`).join('')}</select></div>
+        <div class="field"><label for="nvWarna">Warna</label><select id="nvWarna"><option value="">— pilih —</option>${COLORS.map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div class="field"><label for="nvTransmisi">Transmisi</label><select id="nvTransmisi"><option value="">— pilih —</option>${TRANSMISI_LIST.map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div class="field"><label for="nvTahun">Tahun</label><input type="number" id="nvTahun" min="1980" max="2100"></div>
+        <div class="field"><label for="nvTipe">Tipe Customer</label><select id="nvTipe"><option value="">— pilih —</option>${CUSTOMER_TYPES.map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div class="field"><label for="nvSA">Petugas SA</label><select id="nvSA"><option value="">— pilih —</option>${SA_LIST.map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div class="field wide"><label for="nvNama">Nama Pemilik</label><input type="text" id="nvNama"></div>
+        <div class="field wide"><label for="nvTelp">No. Telp Pemilik</label><input type="tel" id="nvTelp" placeholder="62812xxxxxxx"><span class="hint">Otomatis dirapikan ke format 62… saat disimpan.</span></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+        <button class="btn" data-action="close-modal">Batal</button>
+        <button class="btn btn-accent" data-action="submit-new-vehicle">Simpan &amp; Buka Detail</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   MASTER RENDER
+   ========================================================================= */
+function doRender(){
+  const root = document.getElementById('app');
+  if(!STATE.role){
+    root.innerHTML = renderGate();
+  } else {
+    root.innerHTML = renderShell() + renderDrawer() + renderNewModal();
+  }
+}
+function render(){ withFocusPreserved(doRender); }
+
+/* =========================================================================
+   AKSI DATA
+   ========================================================================= */
+function normalizePhone(raw){
+  let d = String(raw||'').replace(/[^0-9]/g,'');
+  if(!d) return '';
+  if(d.startsWith('0')) d = '62'+d.slice(1);
+  else if(!d.startsWith('62')) d = '62'+d;
+  return d;
+}
+
+/* =========================================================================
+   API GOOGLE SHEETS (Google Apps Script Web App)
+   GET  ?action=list           -> { ok:true, vehicles:[...] }
+   POST { action:'add', data } -> { ok:true, id }
+   POST { action:'update', id, patch } -> { ok:true }
+   Body POST dikirim sebagai text/plain (bukan application/json) supaya
+   browser tidak melakukan CORS preflight (OPTIONS) yang tidak didukung
+   Apps Script — trik standar untuk menghubungkan halaman statis ke Apps
+   Script Web App. Lihat panduan setup yang menyertai file ini.
+   ========================================================================= */
+function apiGet(params){
+  const qs = new URLSearchParams(params).toString();
+  const url = API_URL + (API_URL.includes('?') ? '&' : '?') + qs;
+  return fetch(url, {method:'GET'}).then(r=>r.json());
+}
+function apiPost(body){
+  return fetch(API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify(body),
+  }).then(r=>r.json());
+}
+
+function saveField(vid, key, value){
+  bulkSaveFields(vid, {[key]:value});
+}
+
+function bulkSaveFields(vid, patch){
+  const v = STATE.vehicles.find(x=>x.id===vid);
+  if(v) Object.assign(v, patch);
+  render();
+  if(STATE.demoMode) return;
+  apiPost({action:'update', id:vid, patch}).then(res=>{
+    if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
+  }).catch(err=>{
+    toast('Gagal menyimpan ke Google Sheets: '+(err&&err.message||'tidak diketahui'));
+  });
+}
+
+function nowLocalISOMinute(){
+  const d = new Date();
+  const tzOffset = d.getTimezoneOffset()*60000;
+  return new Date(d.getTime()-tzOffset).toISOString().slice(0,16);
+}
+
+function approveQcStage(stageKey, vid){
+  const stage = STAGE_DEFS.find(s=>s.key===stageKey);
+  const v = STATE.vehicles.find(x=>x.id===vid);
+  if(!stage || !stage.approval || !v) return;
+  const ap = stage.approval;
+  const qcName = (v[ap.qcField]||'').trim();
+  if(!qcName){
+    toast('Isi Nama QC terlebih dahulu, baru klik Setujui.');
+    const el = document.getElementById('f_'+vid+'_'+ap.qcField);
+    if(el){ el.focus(); }
+    return;
+  }
+  const patch = {};
+  patch[ap.hasilField] = ap.hasilOk;
+  patch[ap.kesimpulanField] = 'Disetujui oleh '+qcName+'. Hasil QC: '+ap.hasilOk+'.';
+  patch[ap.selesaiField] = nowLocalISOMinute();
+  if(ap.serahField) patch[ap.serahField] = true;
+  bulkSaveFields(vid, patch);
+  toast('Tahap "'+stage.title+'" disetujui oleh '+qcName+'.');
+}
+
+function addVehicle(data){
+  const id = 'v'+Date.now()+Math.floor(Math.random()*1000);
+  data.id = id;
+  data.createdAt = new Date().toISOString();
+  if(STATE.demoMode){
+    STATE.vehicles.push(data);
+    STATE.showNewModal = false;
+    STATE.openId = id;
+    toast('Kendaraan ditambahkan (mode pratinjau — belum tersambung ke Google Sheets, tidak tersimpan permanen).');
+    render();
+    return;
+  }
+  STATE.vehicles.push(data);
+  STATE.showNewModal = false;
+  STATE.openId = id;
+  render();
+  apiPost({action:'add', data}).then(res=>{
+    if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
+    toast('Kendaraan baru berhasil ditambahkan ke Google Sheets.');
+  }).catch(err=>{
+    toast('Kendaraan tampil di layar tapi GAGAL tersimpan ke Google Sheets: '+(err&&err.message||'tidak diketahui'));
+  });
+}
+
+/* =========================================================================
+   SINKRONISASI (polling — Apps Script tidak mendukung push/realtime asli)
+   ========================================================================= */
+async function loadVehicles(){
+  if(STATE.demoMode || STATE.syncing) return;
+  const active = document.activeElement;
+  if(active && active.id && active.id.startsWith('f_') && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName)) return; // jangan timpa field yang sedang diketik
+  STATE.syncing = true;
+  try{
+    const res = await apiGet({action:'list'});
+    if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
+    STATE.vehicles = res.vehicles || [];
+    STATE.connError = '';
+    render();
+  }catch(err){
+    STATE.connError = String((err && err.message) || err);
+    toast('Gagal menyegarkan data dari Google Sheets: '+STATE.connError);
+  }finally{
+    STATE.syncing = false;
+  }
+}
+
+function startPolling(){
+  if(STATE.pollTimer) clearInterval(STATE.pollTimer);
+  STATE.pollTimer = setInterval(loadVehicles, POLL_INTERVAL_MS);
+}
+
+async function bootApp(){
+  if(!API_URL){
+    STATE.demoMode = true;
+    STATE.connError = '';
+    STATE.vehicles = DEMO_VEHICLES.map(v=>({...v}));
+    render();
+    return;
+  }
+  try{
+    const res = await apiGet({action:'list'});
+    if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
+    STATE.vehicles = res.vehicles || [];
+    STATE.demoMode = false;
+    render();
+    startPolling();
+  }catch(err){
+    STATE.demoMode = true;
+    STATE.connError = String((err && err.message) || err);
+    STATE.vehicles = DEMO_VEHICLES.map(v=>({...v}));
+    render();
+  }
+}
+
+/* =========================================================================
+   EXPORT CSV
+   ========================================================================= */
+function csvEscape(s){
+  const str = String(s??'');
+  if(/[",\n]/.test(str)) return '"'+str.replace(/"/g,'""')+'"';
+  return str;
+}
+function exportCSV(){
+  const cols = [
+    {key:'_no', label:'No Urut'},
+    ...ALL_FIELDS.map(f=>({key:f.key, label:f.label, computed:f.type==='computed'})),
+  ];
+  const header = cols.map(c=>csvEscape(c.label)).join(',');
+  const lines = STATE.vehicles.map((v,i)=>{
+    const computed = computeDerived(v);
+    return cols.map(c=>{
+      if(c.key==='_no') return i+1;
+      const f = ALL_FIELDS.find(x=>x.key===c.key);
+      let val = c.computed ? computed[c.key] : v[c.key];
+      if(f && f.type==='checkbox') val = val ? 'Ya' : 'Tidak';
+      return csvEscape(val==null?'':val);
+    }).join(',');
+  });
+  const csv = '﻿'+[header, ...lines].join('\n');
+  const filename = 'tracking-body-paint-'+todayISO()+'.csv';
+
+  try{
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    toast('File CSV berhasil diunduh (cadangan/salinan offline — data utama sudah tersimpan otomatis di Google Sheets).');
+  }catch(err){
+    toast('Gagal membuat file CSV: '+(err&&err.message||'tidak diketahui'));
+  }
+}
+
+/* =========================================================================
+   LINK WHATSAPP MANUAL (bukan otomatis — tanpa koneksi API eksternal)
+   ========================================================================= */
+function waLink(vid){
+  const v = STATE.vehicles.find(x=>x.id===vid);
+  if(!v) return;
+  const phone = normalizePhone(v.no_telp_pemilik);
+  const sum = vehicleSummary(v);
+  let msg = `Halo${v.nama_pemilik?' '+v.nama_pemilik:''}, update perbaikan Body & Paint untuk kendaraan ${v.brand||''} ${v.model||''} (No. Polisi ${v.no_polisi||'-'}):\n`;
+  msg += `Tahap saat ini: ${sum.currentLabel}\n`;
+  const targetTgl = targetPenyerahan(v);
+  if(targetTgl) msg += `Target penyerahan: ${fmtDate(targetTgl)}${v.reschedule_janji_penyerahan?' (reschedule)':''}\n`;
+  if(sum.anyStopped) msg += `Catatan: pekerjaan sedang tertunda (job stoppage), tim kami akan menghubungi Anda.\n`;
+  msg += `Terima kasih atas kesabarannya.`;
+  if(!phone){
+    toast('No. telp pemilik belum diisi / tidak valid.');
+    return;
+  }
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg), '_blank', 'noopener');
+}
+
+/* =========================================================================
+   EVENT DELEGATION
+   ========================================================================= */
+document.addEventListener('click', e=>{
+  const pickRole = e.target.closest('[data-action="pick-role"]');
+  if(pickRole){ STATE.pendingRole = pickRole.dataset.role; render(); return; }
+
+  const enterBtn = e.target.closest('[data-action="enter-app"]');
+  if(enterBtn && !enterBtn.hasAttribute('disabled')){
+    const nameEl = document.getElementById('gateName');
+    STATE.userName = nameEl ? nameEl.value.trim() : STATE.userName;
+    STATE.role = STATE.pendingRole;
+    saveSession();
+    render();
+    return;
+  }
+
+  if(e.target.closest('[data-action="switch-role"]')){
+    STATE.pendingRole = STATE.role;
+    STATE.role = null;
+    render();
+    return;
+  }
+
+  if(e.target.closest('[data-action="export-csv"]')){ exportCSV(); return; }
+  if(e.target.closest('[data-action="refresh-now"]')){ loadVehicles(); toast('Menyegarkan data dari Google Sheets…'); return; }
+
+  if(e.target.closest('[data-action="new-vehicle"]')){ STATE.showNewModal = true; render(); return; }
+  if(e.target.closest('[data-action="close-modal"]')){ STATE.showNewModal = false; render(); return; }
+  if(e.target.matches('[data-action="close-modal-overlay"]')){ STATE.showNewModal = false; render(); return; }
+
+  if(e.target.closest('[data-action="submit-new-vehicle"]')){
+    const polisiEl = document.getElementById('nvPolisi');
+    const polisi = polisiEl.value.trim();
+    if(!polisi){ toast('Nomor Polisi wajib diisi.'); polisiEl.focus(); return; }
+    const rangkaEl = document.getElementById('nvRangka');
+    const rangka = rangkaEl.value.trim();
+    if(!rangka){ toast('No. Rangka wajib diisi.'); rangkaEl.focus(); return; }
+    const tahunEl = document.getElementById('nvTahun');
+    const data = {
+      no_polisi: polisi,
+      no_rangka: rangka,
+      brand: document.getElementById('nvBrand').value,
+      model: document.getElementById('nvModel').value,
+      warna: document.getElementById('nvWarna').value,
+      transmisi: document.getElementById('nvTransmisi').value,
+      tahun: tahunEl.value ? Number(tahunEl.value) : null,
+      tipe_customer: document.getElementById('nvTipe').value,
+      petugas_sa: document.getElementById('nvSA').value,
+      nama_pemilik: document.getElementById('nvNama').value.trim(),
+      no_telp_pemilik: normalizePhone(document.getElementById('nvTelp').value),
+    };
+    addVehicle(data);
+    return;
+  }
+
+  const row = e.target.closest('[data-action="open-vehicle"]');
+  if(row){
+    STATE.openId = row.dataset.id;
+    STATE.openStageKeys = new Set();
+    const v = STATE.vehicles.find(x=>x.id===STATE.openId);
+    if(v){
+      const sum = vehicleSummary(v);
+      const idx = sum.allDone ? 0 : sum.currentIdx;
+      STATE.openStageKeys.add(STATE.openId+':'+STAGE_DEFS[idx].key);
+    }
+    render();
+    return;
+  }
+
+  if(e.target.closest('[data-action="close-drawer"]')){ STATE.openId=null; render(); return; }
+  if(e.target.matches('[data-action="close-drawer-overlay"]')){ STATE.openId=null; render(); return; }
+
+  const stageToggle = e.target.closest('[data-action="toggle-stage"]');
+  if(stageToggle){
+    const k = stageToggle.dataset.key;
+    if(STATE.openStageKeys.has(k)) STATE.openStageKeys.delete(k); else STATE.openStageKeys.add(k);
+    render();
+    return;
+  }
+
+  const waBtn = e.target.closest('[data-action="wa-link"]');
+  if(waBtn){ waLink(waBtn.dataset.id); return; }
+
+  const approveBtn = e.target.closest('[data-action="qc-approve"]');
+  if(approveBtn && !approveBtn.hasAttribute('disabled')){
+    approveQcStage(approveBtn.dataset.stage, approveBtn.dataset.vid);
+    return;
+  }
+});
+
+document.addEventListener('change', e=>{
+  const t = e.target;
+  if(t.id==='filterStage'){ STATE.filterStage=t.value; render(); return; }
+  if(t.id==='filterCustomer'){ STATE.filterCustomer=t.value; render(); return; }
+  if(t.id==='nvBrand'){
+    const modelSel = document.getElementById('nvModel');
+    const opts = BRAND_MODELS[t.value] || [];
+    if(modelSel) modelSel.innerHTML = opts.map(m=>`<option>${esc(m)}</option>`).join('');
+    return;
+  }
+  if(t.dataset && t.dataset.field){
+    const vid = t.dataset.vid, key = t.dataset.field;
+    let val;
+    if(t.type==='checkbox') val = t.checked;
+    else if(t.type==='number') val = t.value===''? null : Number(t.value);
+    else val = t.value;
+    if(key==='no_telp_pemilik' && t.type==='tel') val = normalizePhone(val);
+    saveField(vid, key, val);
+  }
+});
+
+document.addEventListener('input', e=>{
+  const t = e.target;
+  if(t.id==='searchInput'){ STATE.search = t.value; render(); return; }
+  if(t.id==='gateName'){ STATE.userName = t.value; return; }
+});
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+render();
+bootApp();
+</script>
+
+</body></html>
