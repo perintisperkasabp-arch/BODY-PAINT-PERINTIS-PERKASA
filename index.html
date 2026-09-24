@@ -118,7 +118,7 @@
   .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
   .field label{font-size:12.5px;font-weight:600;color:var(--ink-2);}
   .field .hint{font-size:11.5px;color:var(--ink-3);font-weight:400;}
-  input[type=text],input[type=tel],input[type=number],input[type=date],input[type=datetime-local],select,textarea{
+  input[type=text],input[type=password],input[type=tel],input[type=number],input[type=date],input[type=datetime-local],select,textarea{
     width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line-strong);
     background:var(--surface);color:var(--ink);
   }
@@ -268,14 +268,52 @@ const POLL_INTERVAL_MS = 8000;
    Satu sumber kebenaran untuk semua dropdown, tahap, dan field.
    ========================================================================= */
 
-const ROLES = [
-  {id:'sa',       label:'Service Advisor (SA)'},
-  {id:'partman',  label:'Partman'},
-  {id:'qc',       label:'QC Produksi'},
-  {id:'washing',  label:'Washing'},
-  {id:'billing',  label:'Billing'},
-  {id:'admin',    label:'Admin / Kepala Bengkel'},
+/* =========================================================================
+   USER ID & PASSWORD — login per PIC, akses dibatasi otomatis sesuai POS.
+   Kepala Bengkel & Admin Head (fullAccess:true) bisa masuk ke SEMUA POS;
+   PIC lain hanya bisa mengisi/mengedit field milik POS-nya sendiri (field
+   di luar POS-nya tampil non-aktif/disabled, sama seperti sebelumnya, tapi
+   sekarang gerbang masuknya lewat User ID+Password, bukan pilih peran bebas).
+   Pola ini identik dengan versi Artifact (v2) — lihat catatan proyek.
+   ========================================================================= */
+const ROLE_DEFS = {
+  sa:      {label:'Service Advisor (SA)', fieldRoles:['sa']},
+  partman: {label:'Partman', fieldRoles:['partman']},
+  qc:      {label:'QC Produksi (termasuk Washing)', fieldRoles:['qc','washing']},
+  billing: {label:'Billing', fieldRoles:['billing']},
+  admin:   {label:'Kepala Bengkel / Admin Head', fieldRoles:['sa','partman','qc','washing','billing','admin'], fullAccess:true},
+};
+
+// Password awal dibuat otomatis (pola: userid+123) — sampaikan daftar ini ke
+// masing-masing PIC, dan boleh diganti kapan saja dengan menyunting daftar
+// ini lalu deploy ulang. Ini BUKAN sistem otentikasi server-side sungguhan
+// (lihat catatan keamanan di dokumentasi) — level keamanannya setara larangan
+// akses UI berbasis kepercayaan tim, hanya sekarang butuh User ID+Password
+// yang benar dulu untuk bisa masuk.
+const USERS = [
+  {id:'tri',       password:'tri123',       name:'Tri Susilo Purnomo', role:'sa'},
+  {id:'nizar',     password:'nizar123',     name:'Nizar Lubis',        role:'sa'},
+  {id:'feri',      password:'feri123',      name:'Feri Prayogi',       role:'sa'},
+  {id:'indra',     password:'indra123',     name:'Indra',              role:'qc'},
+  {id:'sumantri',  password:'sumantri123',  name:'Sumantri',           role:'qc'},
+  {id:'fahri',     password:'fahri123',     name:'Fahri',              role:'qc'},
+  {id:'reza',      password:'reza123',      name:'Reza',               role:'qc'},
+  {id:'rifai',     password:'rifai123',     name:'Muhammad Rifai',     role:'admin', roleLabel:'Kepala Bengkel'},
+  {id:'steven',    password:'steven123',    name:'Steven',             role:'billing'},
+  {id:'tika',      password:'tika123',      name:'Tika',               role:'billing'},
+  {id:'neta',      password:'neta123',      name:'Neta',               role:'admin', roleLabel:'Admin Head'},
+  {id:'antony',    password:'antony123',    name:'Antony',             role:'partman'},
+  {id:'valentino', password:'valentino123', name:'Valentino',          role:'partman'},
 ];
+function findUser(userId){
+  const uid = String(userId||'').trim().toLowerCase();
+  return USERS.find(u=>u.id===uid) || null;
+}
+function attemptLogin(userId, password){
+  const u = findUser(userId);
+  if(!u || u.password!==password) return null;
+  return u;
+}
 
 const BRAND_MODELS = {
   'Toyota': ['Avanza','Veloz','Innova Zenix','Kijang Innova','Fortuner','Rush','Yaris','Vios','Agya','Calya','Camry','Corolla Cross','Corolla Altis','Raize','Hilux','Land Cruiser','Alphard','Voxy','Sienta','Lainnya'],
@@ -584,21 +622,33 @@ const DEMO_VEHICLES = [
    ========================================================================= */
 const STATE = {
   demoMode:false, connError:'', pollTimer:null, syncing:false,
-  role:null, userName:'',
+  currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
   showNewModal:false,
   search:'', filterStage:'all', filterCustomer:'all',
-  pendingRole:null,
+  loginUserId:'', loginError:'',
 };
+
+function setCurrentUser(user){
+  STATE.currentUser = user;
+  STATE.role = user.role;
+  STATE.userName = user.name;
+}
 
 try{
   const saved = JSON.parse(localStorage.getItem('bp_session')||'null');
-  if(saved && saved.role){ STATE.pendingRole = saved.role; STATE.userName = saved.userName||''; }
+  if(saved && saved.userId){
+    const u = findUser(saved.userId);
+    if(u) setCurrentUser(u);
+  }
 }catch(e){ /* localStorage tak tersedia di pratinjau ini — lanjut tanpa ingatan sesi */ }
 
 function saveSession(){
-  try{ localStorage.setItem('bp_session', JSON.stringify({role:STATE.role, userName:STATE.userName})); }catch(e){}
+  try{
+    if(STATE.currentUser) localStorage.setItem('bp_session', JSON.stringify({userId:STATE.currentUser.id}));
+    else localStorage.removeItem('bp_session');
+  }catch(e){}
 }
 
 /* =========================================================================
@@ -636,24 +686,44 @@ function withFocusPreserved(fn){
    RENDER — GATE PERAN
    ========================================================================= */
 function renderGate(){
-  const chosen = STATE.pendingRole;
   return `
   <div class="gate-wrap">
     <div class="gate-card">
       <h2>PERINTIS BODY &amp; PAINT</h2>
-      <p class="sub">Pilih peran Anda untuk masuk. Ini hanya bantuan tampilan (kolom di luar peran akan tampil non-aktif) — bukan kata sandi.</p>
+      <p class="sub">Masuk dengan User ID &amp; Password yang sudah diberikan. Akses akan otomatis dibatasi sesuai POS Anda — Kepala Bengkel &amp; Admin Head saja yang bisa membuka semua POS.</p>
       <div class="field">
-        <label for="gateName">Nama Anda</label>
-        <input type="text" id="gateName" value="${esc(STATE.userName)}" placeholder="mis. Feri">
+        <label for="gateUserId">User ID</label>
+        <input type="text" id="gateUserId" value="${esc(STATE.loginUserId||'')}" placeholder="mis. feri" autocapitalize="off" autocomplete="username">
       </div>
-      <div class="field"><label>Peran</label></div>
-      <div class="role-grid">
-        ${ROLES.map(r=>`<button type="button" class="role-opt ${chosen===r.id?'active':''}" data-action="pick-role" data-role="${r.id}">${esc(r.label)}</button>`).join('')}
+      <div class="field">
+        <label for="gatePassword">Password</label>
+        <input type="password" id="gatePassword" placeholder="Password" autocomplete="current-password">
       </div>
-      <button class="btn btn-accent" style="width:100%;justify-content:center;padding:11px;" data-action="enter-app" ${chosen?'':'disabled'}>Masuk Aplikasi</button>
+      ${STATE.loginError?`<p class="sub" style="color:var(--bad);margin-top:-8px;margin-bottom:14px;">${esc(STATE.loginError)}</p>`:''}
+      <button class="btn btn-accent" style="width:100%;justify-content:center;padding:11px;" data-action="do-login">Masuk Aplikasi</button>
       ${STATE.demoMode?`<p class="sub" style="margin-top:14px;margin-bottom:0;">Mode pratinjau: ${STATE.connError?'gagal tersambung ke Google Sheets ('+esc(STATE.connError)+')':'API_URL belum diisi di file HTML'} — data contoh ditampilkan dan tidak akan tersimpan. Lihat panduan setup Google Sheets untuk mengaktifkan penyimpanan permanen.</p>`:''}
     </div>
   </div>`;
+}
+
+function doLogin(){
+  const idEl = document.getElementById('gateUserId');
+  const pwEl = document.getElementById('gatePassword');
+  const uid = idEl ? idEl.value.trim() : '';
+  const pw = pwEl ? pwEl.value : '';
+  STATE.loginUserId = uid;
+  const user = attemptLogin(uid, pw);
+  if(!user){
+    STATE.loginError = 'User ID atau Password salah. Hubungi Kepala Bengkel / Admin Head kalau lupa.';
+    render();
+    const pwEl2 = document.getElementById('gatePassword');
+    if(pwEl2) pwEl2.focus();
+    return;
+  }
+  STATE.loginError = '';
+  setCurrentUser(user);
+  saveSession();
+  render();
 }
 
 /* =========================================================================
@@ -676,8 +746,11 @@ function filteredVehicles(){
   });
 }
 
+function currentRoleLabel(){
+  return (STATE.currentUser && STATE.currentUser.roleLabel) || (ROLE_DEFS[STATE.role]||{}).label || STATE.role;
+}
+
 function renderTopbar(){
-  const roleLabel = (ROLES.find(r=>r.id===STATE.role)||{}).label || STATE.role;
   return `
   <div class="topbar">
     <div class="brand">
@@ -688,9 +761,9 @@ function renderTopbar(){
       </div>
     </div>
     <div class="topbar-right">
-      <div class="role-pill"><span class="dot" style="background:${STATE.demoMode?'var(--warn)':'var(--good)'};"></span>${esc(STATE.userName||'—')} · ${esc(roleLabel)}</div>
+      <div class="role-pill"><span class="dot" style="background:${STATE.demoMode?'var(--warn)':'var(--good)'};"></span>${esc(STATE.userName||'—')} · ${esc(currentRoleLabel())}</div>
       ${STATE.demoMode?'':'<button class="btn btn-ghost btn-sm" data-action="refresh-now" title="Segarkan data dari Google Sheets sekarang">⟳ Segarkan</button>'}
-      <button class="btn btn-ghost btn-sm" data-action="switch-role">Ganti Peran</button>
+      <button class="btn btn-ghost btn-sm" data-action="logout">Keluar</button>
       <button class="btn btn-sm" data-action="export-csv">Export CSV</button>
       ${(STATE.role==='sa'||STATE.role==='admin')?'<button class="btn btn-accent btn-sm" data-action="new-vehicle">+ Kendaraan Baru</button>':''}
     </div>
@@ -851,7 +924,10 @@ function renderShell(){
    RENDER — FIELD & STAGE CARD (drawer detail kendaraan)
    ========================================================================= */
 function fieldEditable(f){
-  return STATE.role==='admin' || STATE.role===f.role;
+  const rd = ROLE_DEFS[STATE.role];
+  if(!rd) return false;
+  if(rd.fullAccess) return true;
+  return rd.fieldRoles.includes(f.role);
 }
 
 function buildFieldHTML(f, v, computed){
@@ -974,7 +1050,7 @@ function renderDrawer(){
       </div>
       <div class="drawer-body">
         ${STAGE_DEFS.map((s,i)=>buildStageCard(s,i,v,computed,summary)).join('')}
-        <p class="readonly-note">Kolom di luar peran Anda (${esc((ROLES.find(r=>r.id===STATE.role)||{}).label||'')}) tampil non-aktif. Ganti peran dari topbar bila perlu mengisi bagian lain.</p>
+        <p class="readonly-note">Kolom di luar POS Anda (${esc(currentRoleLabel())}) tampil non-aktif. Hubungi Kepala Bengkel / Admin Head bila perlu mengisi bagian POS lain.</p>
       </div>
     </div>
   </div>`;
@@ -1241,22 +1317,15 @@ function waLink(vid){
    EVENT DELEGATION
    ========================================================================= */
 document.addEventListener('click', e=>{
-  const pickRole = e.target.closest('[data-action="pick-role"]');
-  if(pickRole){ STATE.pendingRole = pickRole.dataset.role; render(); return; }
+  if(e.target.closest('[data-action="do-login"]')){ doLogin(); return; }
 
-  const enterBtn = e.target.closest('[data-action="enter-app"]');
-  if(enterBtn && !enterBtn.hasAttribute('disabled')){
-    const nameEl = document.getElementById('gateName');
-    STATE.userName = nameEl ? nameEl.value.trim() : STATE.userName;
-    STATE.role = STATE.pendingRole;
-    saveSession();
-    render();
-    return;
-  }
-
-  if(e.target.closest('[data-action="switch-role"]')){
-    STATE.pendingRole = STATE.role;
+  if(e.target.closest('[data-action="logout"]')){
+    STATE.currentUser = null;
     STATE.role = null;
+    STATE.userName = '';
+    STATE.loginUserId = '';
+    STATE.loginError = '';
+    saveSession();
     render();
     return;
   }
@@ -1352,7 +1421,12 @@ document.addEventListener('change', e=>{
 document.addEventListener('input', e=>{
   const t = e.target;
   if(t.id==='searchInput'){ STATE.search = t.value; render(); return; }
-  if(t.id==='gateName'){ STATE.userName = t.value; return; }
+});
+
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Enter') return;
+  if(e.target.id==='gateUserId'){ e.preventDefault(); const pw=document.getElementById('gatePassword'); if(pw) pw.focus(); return; }
+  if(e.target.id==='gatePassword'){ e.preventDefault(); doLogin(); return; }
 });
 
 /* =========================================================================
