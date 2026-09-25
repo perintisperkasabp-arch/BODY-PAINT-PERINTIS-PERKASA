@@ -627,7 +627,7 @@ const STATE = {
   openId:null, openStageKeys:new Set(),
   showNewModal:false,
   search:'', filterStage:'all', filterCustomer:'all',
-  loginUserId:'', loginError:'',
+  loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
 
 function setCurrentUser(user){
@@ -697,8 +697,12 @@ function renderGate(){
       </div>
       <div class="field">
         <label for="gatePassword">Password</label>
-        <input type="password" id="gatePassword" placeholder="Password" autocomplete="current-password">
+        <input type="${STATE.showPassword?'text':'password'}" id="gatePassword" value="${esc(STATE.loginPassword||'')}" placeholder="Password" autocomplete="current-password">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);font-weight:400;margin:-6px 0 14px;">
+        <input type="checkbox" id="gateShowPassword" ${STATE.showPassword?'checked':''} style="width:auto;">
+        Tampilkan password
+      </label>
       ${STATE.loginError?`<p class="sub" style="color:var(--bad);margin-top:-8px;margin-bottom:14px;">${esc(STATE.loginError)}</p>`:''}
       <button class="btn btn-accent" style="width:100%;justify-content:center;padding:11px;" data-action="do-login">Masuk Aplikasi</button>
       ${STATE.demoMode?`<p class="sub" style="margin-top:14px;margin-bottom:0;">Mode pratinjau: ${STATE.connError?'gagal tersambung ke Google Sheets ('+esc(STATE.connError)+')':'API_URL belum diisi di file HTML'} — data contoh ditampilkan dan tidak akan tersimpan. Lihat panduan setup Google Sheets untuk mengaktifkan penyimpanan permanen.</p>`:''}
@@ -715,12 +719,14 @@ function doLogin(){
   const user = attemptLogin(uid, pw);
   if(!user){
     STATE.loginError = 'User ID atau Password salah. Hubungi Kepala Bengkel / Admin Head kalau lupa.';
+    STATE.loginPassword = '';
     render();
     const pwEl2 = document.getElementById('gatePassword');
     if(pwEl2) pwEl2.focus();
     return;
   }
   STATE.loginError = '';
+  STATE.loginPassword = '';
   setCurrentUser(user);
   saveSession();
   render();
@@ -1324,6 +1330,7 @@ document.addEventListener('click', e=>{
     STATE.role = null;
     STATE.userName = '';
     STATE.loginUserId = '';
+    STATE.loginPassword = '';
     STATE.loginError = '';
     saveSession();
     render();
@@ -1399,6 +1406,12 @@ document.addEventListener('click', e=>{
 
 document.addEventListener('change', e=>{
   const t = e.target;
+  if(t.id==='gateShowPassword'){
+    STATE.showPassword = t.checked;
+    const pw = document.getElementById('gatePassword');
+    if(pw) pw.type = STATE.showPassword ? 'text' : 'password';
+    return;
+  }
   if(t.id==='filterStage'){ STATE.filterStage=t.value; render(); return; }
   if(t.id==='filterCustomer'){ STATE.filterCustomer=t.value; render(); return; }
   if(t.id==='nvBrand'){
@@ -1421,6 +1434,13 @@ document.addEventListener('change', e=>{
 document.addEventListener('input', e=>{
   const t = e.target;
   if(t.id==='searchInput'){ STATE.search = t.value; render(); return; }
+  // Simpan nilai User ID/Password ke STATE setiap ketikan (tanpa render ulang) supaya
+  // TIDAK hilang kalau ada render() latar belakang (polling Google Sheets tiap 8 detik
+  // sudah berjalan sejak boot, termasuk sebelum login) saat user masih mengisi form
+  // login — sebelumnya nilai ini cuma dibaca saat submit, jadi kalau polling sempat
+  // memanggil render() di tengah pengisian, field jadi tampak "terhapus sendiri".
+  if(t.id==='gateUserId'){ STATE.loginUserId = t.value; return; }
+  if(t.id==='gatePassword'){ STATE.loginPassword = t.value; return; }
 });
 
 document.addEventListener('keydown', e=>{
