@@ -1214,7 +1214,12 @@ function addVehicle(data){
 async function loadVehicles(){
   if(STATE.demoMode || STATE.syncing) return;
   const active = document.activeElement;
-  if(active && active.id && active.id.startsWith('f_') && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName)) return; // jangan timpa field yang sedang diketik
+  // Jangan timpa field APA PUN yang sedang diisi — sebelumnya cek ini cuma menyisir id
+  // berawalan 'f_' (field detail kendaraan), jadi form "Kendaraan Baru" (id nvPolisi dst.)
+  // dan gerbang login (gateUserId/gatePassword) tetap bisa tertimpa render() latar
+  // belakang tiap kali polling ini jalan (tiap 8 detik) — makanya isian terasa "hilang
+  // sendiri" walau sedang aktif mengetik. Sekarang cek berlaku untuk semua kontrol form.
+  if(active && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName)) return;
   STATE.syncing = true;
   try{
     const res = await apiGet({action:'list'});
