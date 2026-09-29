@@ -763,7 +763,7 @@ function renderTopbar(){
       <div class="brand-mark">PB</div>
       <div class="brand-text">
         <h1>PERINTIS BODY &amp; PAINT</h1>
-        <p>Tracking Leadtime &amp; Progress Kendaraan</p>
+        <p>Tracking Leadtime &amp; Progress Kendaraan · <span style="text-transform:none">versi 29-09-2026b</span></p>
       </div>
     </div>
     <div class="topbar-right">
@@ -1099,11 +1099,21 @@ function renderNewModal(){
    ========================================================================= */
 function doRender(){
   const root = document.getElementById('app');
+  // Simpan posisi scroll panel detail, modal, dan halaman SEBELUM digambar ulang
+  // (innerHTML membuat elemen baru -> scroll kembali ke 0 / "loncat balik ke atas").
+  const oldDrawer = root.querySelector('.drawer');
+  const oldModal = root.querySelector('.modal-box');
+  const drawerTop = oldDrawer ? oldDrawer.scrollTop : 0;
+  const modalTop = oldModal ? oldModal.scrollTop : 0;
+  const winX = window.scrollX, winY = window.scrollY;
   if(!STATE.role){
     root.innerHTML = renderGate();
   } else {
     root.innerHTML = renderShell() + renderDrawer() + renderNewModal();
   }
+  if(oldDrawer){ const d = root.querySelector('.drawer'); if(d) d.scrollTop = drawerTop; }
+  if(oldModal){ const m = root.querySelector('.modal-box'); if(m) m.scrollTop = modalTop; }
+  if(window.scrollX!==winX || window.scrollY!==winY) window.scrollTo(winX, winY);
 }
 function render(){ withFocusPreserved(doRender); }
 
@@ -1224,8 +1234,15 @@ async function loadVehicles(){
   try{
     const res = await apiGet({action:'list'});
     if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
-    STATE.vehicles = res.vehicles || [];
+    const fresh = res.vehicles || [];
+    const sig = JSON.stringify(fresh);
     STATE.connError = '';
+    // Kalau data dari Google Sheets tidak berubah sejak sinkron terakhir, JANGAN gambar
+    // ulang halaman sama sekali — supaya panel detail yang sedang dibuka/di-scroll tidak
+    // terganggu tiap 8 detik.
+    if(sig === STATE.lastSig) return;
+    STATE.lastSig = sig;
+    STATE.vehicles = fresh;
     render();
   }catch(err){
     STATE.connError = String((err && err.message) || err);
@@ -1252,6 +1269,7 @@ async function bootApp(){
     const res = await apiGet({action:'list'});
     if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
     STATE.vehicles = res.vehicles || [];
+    STATE.lastSig = JSON.stringify(STATE.vehicles);
     STATE.demoMode = false;
     render();
     startPolling();
@@ -1395,7 +1413,9 @@ document.addEventListener('click', e=>{
   if(stageToggle){
     const k = stageToggle.dataset.key;
     if(STATE.openStageKeys.has(k)) STATE.openStageKeys.delete(k); else STATE.openStageKeys.add(k);
-    render();
+    // Buka/tutup tahap langsung di DOM (tanpa gambar ulang) supaya scroll tidak bergeser.
+    const card = stageToggle.closest('.stage-card');
+    if(card) card.classList.toggle('open', STATE.openStageKeys.has(k)); else render();
     return;
   }
 
