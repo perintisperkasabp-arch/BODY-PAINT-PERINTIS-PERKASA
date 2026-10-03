@@ -351,6 +351,36 @@ const HASIL_QC_WARNA = ['Warna Sesuai','Warna Belum Sesuai'];
 const STATUS_KENDARAAN_FINAL = ['Perlu Balik ke Production','Perlu Washing & Ready Penyerahan','Ready Penyerahan','Perlu SPK Tambahan (Add SPK)','Lainnya'];
 const BERSIH_LIST = ['Bersih','Tidak Bersih'];
 const STATUS_BAYAR_LIST = ['Lunas','Belum','Sebagian'];
+const SUMBER_PART_LIST = ['Depo','Jakarta','VOR'];
+const STATUS_ADD_SPK_LIST = ['Diajukan','Diterima','Ditolak'];
+
+// Field berulang untuk "ADD SPK" (pengajuan tambahan setelah order/SPK pertama) —
+// dibuat lewat fungsi generator supaya field di tiap slot (ke-1/2/3) konsisten,
+// bukan ditulis berulang manual (revisi 2026-10-03, atas permintaan user: butuh
+// hingga 3x pengajuan tambahan baik untuk part maupun approval SPK produksi).
+function addSpkPartFields(n){
+  const p = 'part_add'+n+'_';
+  return [
+    {key:p+'sumber', label:'ADD SPK Part ke-'+n+' — Sumber Part', type:'select', role:'partman', options:SUMBER_PART_LIST},
+    {key:p+'tanggal_order', label:'ADD SPK Part ke-'+n+' — Tanggal Order', type:'date', role:'partman'},
+    {key:p+'etd', label:'ADD SPK Part ke-'+n+' — ETD Kedatangan Part', type:'date', role:'partman'},
+    {key:p+'arrival', label:'ADD SPK Part ke-'+n+' — Tanggal Arrival (Aktual)', type:'date', role:'partman'},
+    {key:p+'perubahan_etd', label:'ADD SPK Part ke-'+n+' — Perubahan Tanggal ETD', type:'date', role:'partman'},
+    {key:p+'alasan_etd', label:'ADD SPK Part ke-'+n+' — Alasan Perubahan ETD', type:'textarea', role:'partman'},
+  ];
+}
+function addSpkProduksiFields(n){
+  const p = 'sa_add'+n+'_';
+  return [
+    {key:p+'tanggal_pengajuan', label:'ADD SPK ke-'+n+' — Tanggal Pengajuan', type:'date', role:'sa'},
+    {key:p+'tanggal_keputusan', label:'ADD SPK ke-'+n+' — Tanggal Diputuskan', type:'date', role:'sa'},
+    {key:p+'status', label:'ADD SPK ke-'+n+' — Status', type:'select', role:'sa', options:STATUS_ADD_SPK_LIST},
+    {key:p+'keterangan', label:'ADD SPK ke-'+n+' — Keterangan (diterima/ditolak)', type:'textarea', role:'sa'},
+  ];
+}
+function hasAddSpkPart(v){
+  return [1,2,3].some(function(n){ return !!v['part_add'+n+'_tanggal_order']; });
+}
 
 function panelStatus(n){
   if(n===''||n===null||n===undefined||isNaN(n)) return null;
@@ -378,6 +408,7 @@ function qcStage(key, title, waitingLabel, hasilOptions, hasMekanik, nextLabel){
   fields.push({key:key+'_lanjut_at', label:'Lanjutkan Pengerjaan — Tanggal & Jam', type:'datetime', role:'qc'});
   fields.push({key:key+'_sa_ack', label:'SA Sudah Mengetahui / Dihubungi', type:'checkbox', role:'sa'});
   fields.push({key:key+'_hasil', label:'Hasil QC', type:'select', role:'qc', options:hasilOptions});
+  fields.push({key:key+'_akurasi', label:'Akurasi QC (%)', type:'number', role:'qc', min:0, max:100, unit:'%'});
   fields.push({key:key+'_kesimpulan', label:'Kesimpulan & Approval QC', type:'textarea', role:'qc'});
   fields.push({key:key+'_selesai', label:'Tanggal & Jam Selesai '+title, type:'datetime', role:'qc'});
   if(nextLabel) fields.push({key:key+'_serah', label:'Serah Terima ke '+nextLabel, type:'checkbox', role:'qc'});
@@ -409,7 +440,9 @@ const STAGE_DEFS = [
       {key:'nama_vendor', label:'Nama Vendor', type:'select', role:'sa', options:VENDOR_LIST},
       {key:'nama_pemilik', label:'Nama Pemilik', type:'text', role:'sa'},
       {key:'no_telp_pemilik', label:'No. Telp Pemilik', type:'tel', role:'sa', hint:'Harus diawali 62, tanpa spasi/strip.'},
-      {key:'tanggal_reminder_spk', label:'Tanggal Reminder SPK', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'tanggal_reminder_spk', label:'Tanggal Reminder SPK (ke-1)', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'tanggal_reminder_spk_2', label:'Tanggal Reminder SPK (ke-2)', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'tanggal_reminder_spk_3', label:'Tanggal Reminder SPK (ke-3)', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
       {key:'keterangan_reminder', label:'Keterangan Hasil Reminder SPK', type:'textarea', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
       {key:'tanggal_terbit_spk', label:'Tanggal Terbit SPK', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
       {key:'leadtime_terbit_spk', label:'Leadtime Terbit SPK', type:'computed', unit:'hari'},
@@ -417,17 +450,21 @@ const STAGE_DEFS = [
     ]},
   { key:'partman', title:'Pengadaan Part', roleLabel:'Partman', startField:'tanggal_order_part', finishField:'tanggal_part_arrival',
     fields:[
+      {key:'waiting_partman', label:'Lama Proses Part (Order → Arrival)', type:'computed', unit:'hari'},
+      {key:'sumber_part', label:'Sumber Part', type:'select', role:'partman', options:SUMBER_PART_LIST},
       {key:'tanggal_order_part', label:'Tanggal Order Part', type:'date', role:'partman'},
       {key:'etd', label:'Estimated Time of Departure (ETD)', type:'date', role:'partman'},
       {key:'tanggal_part_arrival', label:'Tanggal Part Arrival (Aktual)', type:'date', role:'partman'},
       {key:'perubahan_etd', label:'Perubahan Tanggal ETD', type:'date', role:'partman'},
       {key:'alasan_perubahan_etd', label:'Alasan Perubahan ETD', type:'textarea', role:'partman'},
+      ...addSpkPartFields(1), ...addSpkPartFields(2), ...addSpkPartFields(3),
     ]},
   { key:'produksi', title:'Masuk Produksi', roleLabel:'Service Advisor', startField:'tanggal_masuk_asuransi', finishField:null,
     fields:[
       {key:'tanggal_masuk_asuransi', label:'Tanggal Masuk / PKB (Asuransi)', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
       {key:'tgl_janji_penyerahan', label:'Tanggal Janji Penyerahan (Target)', type:'date', role:'sa'},
       {key:'reschedule_janji_penyerahan', label:'Reschedule Janji Penyerahan', type:'date', role:'sa', hint:'Isi hanya jika tanggal janji penyerahan berubah dari target awal. Diproses oleh SA.'},
+      ...addSpkProduksiFields(1), ...addSpkProduksiFields(2), ...addSpkProduksiFields(3),
       {key:'waiting_production', label:'Waiting Production', type:'computed', unit:'hari'},
     ]},
   qcStage('panel_repair','Panel Repair','Waiting Production (dari Part Arrival / Masuk)',HASIL_QC_STD,true,'QC Persiapan & Dempul'),
@@ -444,6 +481,7 @@ const STAGE_DEFS = [
       {key:'final_inspection_mulai', label:'Tanggal & Jam Mulai Final Inspection', type:'datetime', role:'qc'},
       {key:'final_inspection_qc', label:'Nama QC (Final Inspection)', type:'text', role:'qc'},
       {key:'final_inspection_hasil', label:'Hasil QC', type:'select', role:'qc', options:HASIL_QC_STD},
+      {key:'final_inspection_akurasi', label:'Akurasi QC (%)', type:'number', role:'qc', min:0, max:100, unit:'%'},
       {key:'final_inspection_kesimpulan', label:'Kesimpulan & Approval QC', type:'textarea', role:'qc'},
       {key:'final_status_kendaraan', label:'Status Kendaraan', type:'select', role:'qc', options:STATUS_KENDARAAN_FINAL},
       {key:'final_status_lainnya', label:'Keterangan Status Lainnya', type:'text', role:'qc', showIf:v=>v.final_status_kendaraan==='Lainnya'},
@@ -480,7 +518,7 @@ const STAGE_DEFS = [
     ]},
 ];
 
-const ALL_FIELDS = STAGE_DEFS.reduce((a,s)=>a.concat(s.fields),[]);
+const ALL_FIELDS = STAGE_DEFS.reduce(function(acc,s){ return acc.concat(s.fields); }, []);
 
 /* =========================================================================
    UTIL TANGGAL & FORMAT
@@ -538,6 +576,8 @@ function computeDerived(v){
   c.leadtime_terbit_spk = daysBetween(v.tanggal_lapor_asuransi, v.tanggal_terbit_spk);
   c.masa_tunggu_spk = (v.tipe_customer==='Asuransi' && v.tanggal_lapor_asuransi && !v.tanggal_terbit_spk)
     ? daysBetween(v.tanggal_lapor_asuransi, todayISO()) : null;
+
+  c.waiting_partman = v.tanggal_order_part ? daysBetween(v.tanggal_order_part, v.tanggal_part_arrival || todayISO()) : null;
 
   const masukBasis = v.tipe_customer==='Asuransi' ? v.tanggal_masuk_asuransi : v.tanggal_masuk_cash;
   const partBasis = v.tanggal_part_arrival || masukBasis;
@@ -765,7 +805,7 @@ function renderTopbar(){
       <div class="brand-mark">PB</div>
       <div class="brand-text">
         <h1>PERINTIS BODY &amp; PAINT</h1>
-        <p>Tracking Leadtime &amp; Progress Kendaraan · <span style="text-transform:none">versi 01-10-2026b</span></p>
+        <p>Tracking Leadtime &amp; Progress Kendaraan</p>
       </div>
     </div>
     <div class="topbar-right">
@@ -867,7 +907,7 @@ function renderTable(list){
       <td class="mono">${i+1}</td>
       <td class="mono veh-id">${esc(v.no_polisi||'—')}</td>
       <td>
-        <div class="veh-id">${esc(v.no_rangka||'(belum diisi)')}</div>
+        <div class="veh-id">${esc(v.no_rangka||'(belum diisi)')}${hasAddSpkPart(v)?' <span class="badge badge-medium" title="Ada pemesanan part tambahan (ADD SPK)">ADD SPK Part</span>':''}</div>
         <div class="veh-sub">${esc(v.brand||'')} ${esc(v.model||'')} · ${esc(v.warna||'')}</div>
       </td>
       <td>
@@ -1047,7 +1087,7 @@ function renderDrawer(){
     <div class="drawer" data-stop-close>
       <div class="drawer-head">
         <div>
-          <h2>${esc(v.no_polisi||v.no_rangka||'Kendaraan baru')}</h2>
+          <h2>${esc(v.no_polisi||v.no_rangka||'Kendaraan baru')}${hasAddSpkPart(v)?' <span class="badge badge-medium" title="Ada pemesanan part tambahan (ADD SPK)">ADD SPK Part</span>':''}</h2>
           <div class="veh-sub">No. Rangka: ${esc(v.no_rangka||'—')} · ${esc(v.brand||'')} ${esc(v.model||'')} · ${esc(v.warna||'')} · ${esc(v.tipe_customer||'—')} ${v.jumlah_panel!=null?'· '+esc(panelStatus(v.jumlah_panel))+' ('+esc(v.jumlah_panel)+'p)':''}</div>
           <div class="veh-sub" style="margin-top:4px;font-weight:700;color:${summary.anyStopped?'var(--bad)':'var(--accent)'};">Tahap saat ini: ${esc(summary.currentLabel)}${summary.anyStopped?' — Job Stoppage aktif ⏸':''}</div>
         </div>
@@ -1101,8 +1141,10 @@ function renderNewModal(){
    ========================================================================= */
 function doRender(){
   const root = document.getElementById('app');
-  // Simpan posisi scroll panel detail, modal, dan halaman SEBELUM digambar ulang
-  // (innerHTML membuat elemen baru -> scroll kembali ke 0 / "loncat balik ke atas").
+  // Simpan posisi scroll panel detail, modal, dan halaman SEBELUM digambar ulang —
+  // innerHTML membuat elemen baru sehingga scroll-nya kembali ke 0 (tampilan
+  // "loncat balik ke atas" tiap kali tahap dibuka/ditutup, field disimpan, atau
+  // data tersinkron dari staf lain).
   const oldDrawer = root.querySelector('.drawer');
   const oldModal = root.querySelector('.modal-box');
   const drawerTop = oldDrawer ? oldDrawer.scrollTop : 0;
@@ -1236,15 +1278,8 @@ async function loadVehicles(){
   try{
     const res = await apiGet({action:'list'});
     if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
-    const fresh = res.vehicles || [];
-    const sig = JSON.stringify(fresh);
+    STATE.vehicles = res.vehicles || [];
     STATE.connError = '';
-    // Kalau data dari Google Sheets tidak berubah sejak sinkron terakhir, JANGAN gambar
-    // ulang halaman sama sekali — supaya panel detail yang sedang dibuka/di-scroll tidak
-    // terganggu tiap 8 detik.
-    if(sig === STATE.lastSig) return;
-    STATE.lastSig = sig;
-    STATE.vehicles = fresh;
     render();
   }catch(err){
     STATE.connError = String((err && err.message) || err);
@@ -1263,7 +1298,7 @@ async function bootApp(){
   if(!API_URL){
     STATE.demoMode = true;
     STATE.connError = '';
-    STATE.vehicles = DEMO_VEHICLES.map(v=>Object.assign({},v));
+    STATE.vehicles = DEMO_VEHICLES.map(function(v){ return Object.assign({}, v); });
     render();
     return;
   }
@@ -1271,14 +1306,13 @@ async function bootApp(){
     const res = await apiGet({action:'list'});
     if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
     STATE.vehicles = res.vehicles || [];
-    STATE.lastSig = JSON.stringify(STATE.vehicles);
     STATE.demoMode = false;
     render();
     startPolling();
   }catch(err){
     STATE.demoMode = true;
     STATE.connError = String((err && err.message) || err);
-    STATE.vehicles = DEMO_VEHICLES.map(v=>Object.assign({},v));
+    STATE.vehicles = DEMO_VEHICLES.map(function(v){ return Object.assign({}, v); });
     render();
   }
 }
@@ -1415,7 +1449,8 @@ document.addEventListener('click', e=>{
   if(stageToggle){
     const k = stageToggle.dataset.key;
     if(STATE.openStageKeys.has(k)) STATE.openStageKeys.delete(k); else STATE.openStageKeys.add(k);
-    // Buka/tutup tahap langsung di DOM (tanpa gambar ulang) supaya scroll tidak bergeser.
+    // Buka/tutup tahap langsung di DOM (tanpa gambar ulang seluruh halaman) supaya
+    // posisi scroll tidak bergeser sama sekali.
     const card = stageToggle.closest('.stage-card');
     if(card) card.classList.toggle('open', STATE.openStageKeys.has(k)); else render();
     return;
