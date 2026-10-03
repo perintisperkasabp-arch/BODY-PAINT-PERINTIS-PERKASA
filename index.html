@@ -1161,6 +1161,21 @@ function doRender(){
 }
 function render(){ withFocusPreserved(doRender); }
 
+// Render yang ditunda ke tick berikutnya (bukan langsung), dipakai untuk render yang
+// dipicu OLEH simpan field (bulkSaveFields) atau sinkronisasi latar belakang — supaya
+// render yang merombak seluruh #app TIDAK berjalan di tengah-tengah proses blur/klik
+// pindah ke kolom berikutnya (saat itu document.activeElement bisa sesaat kosong/berubah
+// sebelum fokus benar-benar pindah, terutama di tablet/Android, membuat klik ke kolom
+// berikutnya seolah "tidak kena" dan field sebelumnya tampak kosong/layar meloncat ke
+// atas). Dengan ditunda lewat setTimeout(0), proses blur→fokus kolom berikutnya sempat
+// selesai dulu secara native sebelum DOM dirombak ulang.
+let _renderQueued = false;
+function scheduleRender(){
+  if(_renderQueued) return;
+  _renderQueued = true;
+  setTimeout(function(){ _renderQueued = false; render(); }, 0);
+}
+
 /* =========================================================================
    AKSI DATA
    ========================================================================= */
@@ -1202,7 +1217,7 @@ function saveField(vid, key, value){
 function bulkSaveFields(vid, patch){
   const v = STATE.vehicles.find(x=>x.id===vid);
   if(v) Object.assign(v, patch);
-  render();
+  scheduleRender();
   if(STATE.demoMode) return;
   apiPost({action:'update', id:vid, patch}).then(res=>{
     if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
@@ -1280,7 +1295,7 @@ async function loadVehicles(){
     if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
     STATE.vehicles = res.vehicles || [];
     STATE.connError = '';
-    render();
+    scheduleRender();
   }catch(err){
     STATE.connError = String((err && err.message) || err);
     toast('Gagal menyegarkan data dari Google Sheets: '+STATE.connError);
