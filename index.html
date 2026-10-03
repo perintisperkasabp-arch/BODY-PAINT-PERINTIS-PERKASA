@@ -621,7 +621,17 @@ function vehicleSummary(v){
   for(let i=0;i<STAGE_DEFS.length;i++){
     const st = stageState(i, v);
     if(st.stopped) anyStopped = true;
-    if(st.started && !st.finished){ currentIdx = i; break; }
+    // Tahap "saat ini" = tahap PERTAMA yang belum finished — BUKAN mensyaratkan field
+    // startField-nya sendiri sudah diisi juga (dulu: `st.started && !st.finished`). Bug:
+    // kalau satu tahap sudah selesai (mis. Partman: Tanggal Order Part + Tanggal Part
+    // Arrival sudah diisi) tapi tahap BERIKUTNYA belum sempat diisi field "mulai"-nya sama
+    // sekali (mis. Masuk Produksi belum dicatat SA), stage berikutnya itu "started"-nya
+    // false, jadi tidak pernah "kena" kondisi lama — kalau SEMUA tahap sesudahnya juga
+    // begitu, loop ini tidak pernah berhenti dan kendaraan keliru dianggap "Selesai" padahal
+    // sebenarnya masih menunggu masuk tahap berikutnya. Field startField tetap dipakai utk
+    // status "stopped" (job stoppage) di stageState(), hanya currentIdx yang tidak lagi
+    // mensyaratkannya.
+    if(!st.finished){ currentIdx = i; break; }
   }
   const allDone = currentIdx===STAGE_DEFS.length;
   return {
