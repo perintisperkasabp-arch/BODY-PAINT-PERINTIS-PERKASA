@@ -240,7 +240,37 @@
   .modal-mask{position:fixed;inset:0;background:rgba(15,18,24,.45);display:flex;align-items:center;justify-content:center;z-index:60;padding:16px;}
   .modal-box{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:22px;}
   .modal-box h2{font-size:20px;margin-bottom:14px;}
+
+  /* ---------- Dashboard Leadtime & daftar Overdue ---------- */
+  .stat-tile.clickable{cursor:pointer;transition:border-color .12s,box-shadow .12s;}
+  .stat-tile.clickable:hover{border-color:var(--warn);box-shadow:var(--shadow-md);}
+  .stat-tile.clickable:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .stat-tile .hint-click{font-size:11px;color:var(--warn);font-weight:700;margin-top:4px;}
+  .lt-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2);padding:10px 18px 0;}
+  .lt-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
+  .lt-grid{padding:8px 18px 16px;display:flex;flex-direction:column;gap:6px;overflow-x:auto;}
+  .lt-row{display:grid;grid-template-columns:160px minmax(150px,1fr) minmax(150px,1fr);gap:32px;align-items:center;min-width:560px;}
+  .lt-row.head{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:700;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .lt-name{font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .lt-cell{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;}
+  .lt-track{background:var(--surface-2);border-radius:5px;height:8px;overflow:hidden;}
+  .lt-bar{height:100%;border-radius:0 4px 4px 0;min-width:2px;}
+  .lt-bar.wait{background:var(--accent);}
+  .lt-bar.work{background:var(--ink-2);}
+  .lt-val{font-size:12px;text-align:right;white-space:nowrap;min-width:92px;}
+  .lt-val small{color:var(--ink-3);font-size:10.5px;}
+  .lt-none{color:var(--ink-3);}
+  .lt-row.total{border-top:1px solid var(--line);padding-top:8px;margin-top:2px;font-weight:700;}
+  .od-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .od-chip{appearance:none;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .od-chip:hover{background:var(--surface-2);}
+  .od-chip.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
+  .modal-box.wide{max-width:900px;}
+  .od-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;}
+  .od-head h2{margin:0;}
+  .od-head .sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
 </style>
+
 
 <div id="app"></div>
 <div class="toast-wrap" id="toastWrap"></div>
@@ -677,7 +707,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false,
+  showNewModal:false, showOverdue:false, overdueSA:'all', leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -828,6 +858,162 @@ function renderTopbar(){
   </div>`;
 }
 
+
+/* =========================================================================
+   DASHBOARD LEADTIME PER PROSES & DAFTAR OVERDUE
+   ========================================================================= */
+// Daftar kendaraan yang masih berjalan & sudah lewat target penyerahan efektif
+// (reschedule kalau ada), diurutkan dari yang paling telat.
+function overdueVehicles(list){
+  const today = todayISO();
+  const out = [];
+  list.forEach(function(v){
+    if(vehicleSummary(v).allDone) return;
+    const t = targetPenyerahan(v);
+    if(t && t < today){
+      const late = daysBetween(t, today);
+      out.push({v:v, target:t, late: late==null ? 0 : Math.max(1, Math.round(late))});
+    }
+  });
+  out.sort(function(a,b){ return b.late - a.late; });
+  return out;
+}
+
+// Definisi Waiting & Durasi kerja per tahap. Waiting = jeda sebelum tahap mulai
+// (computeDerived), Durasi = mulai -> selesai tahap itu sendiri.
+function stageLeadtimeValue(stage, v, c, kind){
+  const k = stage.key;
+  if(kind==='wait'){
+    if(k==='produksi') return c.waiting_production;
+    if(k==='panel_repair') return null; // sama dengan Waiting Production (sudah di baris Masuk Produksi)
+    if(k==='billing') return c.waiting_invoice;
+    if(k==='intake' || k==='partman') return null;
+    return c['waiting_'+k];
+  }
+  if(k==='intake') return c.leadtime_terbit_spk;
+  if(k==='partman') return c.waiting_partman;
+  if(k==='produksi') return null;
+  if(k==='billing') return (v.status_bayar==='Lunas' && v.tanggal_bayar) ? c.umur_piutang : null;
+  if(stage.startField && stage.finishField) return daysBetween(v[stage.startField], v[stage.finishField]);
+  return null;
+}
+
+function avgOf(arr){
+  const xs = arr.filter(function(x){ return x!=null && x>=0; });
+  if(!xs.length) return {avg:null, n:0};
+  return {avg: xs.reduce(function(a,b){ return a+b; },0)/xs.length, n: xs.length};
+}
+
+function fmtLeadtime(avg){
+  if(avg==null) return '<span class="lt-none">—</span>';
+  if(avg < 1) return '<b class="mono">'+Math.round(avg*24)+'</b> jam';
+  return '<b class="mono">'+avg.toFixed(1)+'</b> hari';
+}
+
+function leadtimeRows(list){
+  const computed = list.map(function(v){ return {v:v, c:computeDerived(v)}; });
+  const rows = STAGE_DEFS.map(function(s){
+    return {
+      label: s.title,
+      wait: avgOf(computed.map(function(x){ return stageLeadtimeValue(s, x.v, x.c, 'wait'); })),
+      work: avgOf(computed.map(function(x){ return stageLeadtimeValue(s, x.v, x.c, 'work'); })),
+      workHint: s.key==='intake' ? 'Lapor asuransi → SPK terbit'
+              : s.key==='partman' ? 'Order part → part arrival'
+              : s.key==='billing' ? 'Mulai billing → dibayar (lunas)'
+              : 'Mulai → selesai tahap',
+    };
+  });
+  const total = avgOf(computed.map(function(x){ return x.c.total_leadtime; }));
+  return {rows:rows, total:total};
+}
+
+function renderLeadtime(list){
+  const data = leadtimeRows(list);
+  const maxVal = Math.max(1, Math.max.apply(null, data.rows.reduce(function(acc,r){
+    return acc.concat([r.wait.avg||0, r.work.avg||0]);
+  }, [data.total.avg||0])));
+  function cell(stat, cls, hint){
+    if(stat.avg==null) return '<div class="lt-cell"><div class="lt-track"></div><span class="lt-val">'+fmtLeadtime(null)+'</span></div>';
+    const w = Math.max(2, stat.avg/maxVal*100);
+    return '<div class="lt-cell" title="'+esc(hint+': rata-rata '+stat.avg.toFixed(1)+' hari dari '+stat.n+' kendaraan')+'">'+
+      '<div class="lt-track"><div class="lt-bar '+cls+'" style="width:'+w.toFixed(0)+'%"></div></div>'+
+      '<span class="lt-val">'+fmtLeadtime(stat.avg)+' <small>(n='+stat.n+')</small></span></div>';
+  }
+  const open = STATE.leadtimeOpen!==false;
+  return `
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="panel-head">
+      <h2>Leadtime per Proses</h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="sub" style="font-size:11.5px;color:var(--ink-3);">rata-rata dari semua kendaraan yang sudah punya data di tahap tsb</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-leadtime">${open?'Sembunyikan':'Tampilkan'}</button>
+      </div>
+    </div>
+    ${open ? `
+    <div class="lt-legend">
+      <span><i style="background:var(--accent)"></i>Waiting (jeda sebelum tahap mulai)</span>
+      <span><i style="background:var(--ink-2)"></i>Durasi kerja (mulai → selesai)</span>
+    </div>
+    <div class="lt-grid">
+      <div class="lt-row head"><span>Tahap</span><span>Waiting</span><span>Durasi kerja</span></div>
+      ${data.rows.map(function(r){
+        return '<div class="lt-row"><span class="lt-name" title="'+esc(r.label)+'">'+esc(r.label)+'</span>'+
+          cell(r.wait,'wait','Waiting sebelum '+r.label)+cell(r.work,'work',r.workHint)+'</div>';
+      }).join('')}
+      <div class="lt-row total"><span class="lt-name">Total Leadtime</span>
+        <span class="veh-sub">masuk bengkel → penyerahan selesai</span>
+        ${cell(data.total,'work','Total leadtime (masuk → penyerahan selesai)')}</div>
+    </div>` : ''}
+  </div>`;
+}
+
+function renderOverdueModal(){
+  if(!STATE.showOverdue) return '';
+  const all = overdueVehicles(STATE.vehicles);
+  const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
+  const counts = {};
+  all.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
+  const saNames = Object.keys(counts).sort();
+  const sel = STATE.overdueSA && counts[STATE.overdueSA] ? STATE.overdueSA : 'all';
+  const items = sel==='all' ? all : all.filter(function(it){ return saKey(it.v)===sel; });
+  const chips = ['<button type="button" class="od-chip '+(sel==='all'?'active':'')+'" data-action="overdue-filter-sa" data-sa="all">Semua SA · '+all.length+'</button>']
+    .concat(saNames.map(function(n){
+      return '<button type="button" class="od-chip '+(sel===n?'active':'')+'" data-action="overdue-filter-sa" data-sa="'+esc(n)+'">'+esc(n)+' · '+counts[n]+'</button>';
+    })).join('');
+  const rows = items.map(function(it, i){
+    const v = it.v, sum = vehicleSummary(v);
+    return `
+    <tr data-action="open-vehicle" data-id="${esc(v.id)}">
+      <td class="mono">${i+1}</td>
+      <td class="mono veh-id">${esc(v.no_polisi||'—')}<div class="veh-sub">${esc(v.brand||'')} ${esc(v.model||'')}</div></td>
+      <td><b>${esc(v.petugas_sa||'—')}</b></td>
+      <td>${esc(v.nama_pemilik||'—')}<div class="veh-sub">${esc(v.tipe_customer||'—')}${v.tipe_customer==='Asuransi'&&v.nama_asuransi?' · '+esc(insurerLabel(v)):''}</div></td>
+      <td style="${sum.anyStopped?'color:var(--bad);font-weight:700;':''}">${esc(sum.currentLabel)}${sum.anyStopped?' ⏸':''}</td>
+      <td>${fmtDate(it.target)}${v.reschedule_janji_penyerahan?'<div class="veh-sub" style="color:var(--warn);">Reschedule</div>':''}</td>
+      <td><span class="badge ${it.late>=7?'badge-heavy':'badge-medium'}">+${it.late} hari</span></td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="modal-mask" data-action="close-overdue-overlay">
+    <div class="modal-box wide" data-stop-close>
+      <div class="od-head">
+        <div>
+          <h2>Kendaraan Lewat Janji Penyerahan</h2>
+          <div class="sub">Urut dari yang paling telat. Klik baris untuk membuka detail kendaraan.</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="close-overdue">✕</button>
+      </div>
+      <div class="od-chips">${chips}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>No Polisi</th><th>Nama SA</th><th>Pemilik</th><th>Tahap saat ini</th><th>Janji</th><th>Lewat</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="7"><div class="empty-state">Tidak ada kendaraan yang lewat janji penyerahan. 🎉</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderStatTiles(list){
   const active = list.filter(v=>!vehicleSummary(v).allDone);
   const withTotal = list.map(v=>computeDerived(v).total_leadtime).filter(x=>x!=null);
@@ -836,7 +1022,7 @@ function renderStatTiles(list){
   active.forEach(v=>{ const s=panelStatus(v.jumlah_panel); if(s) byPanel[s]++; });
   const stopped = active.filter(v=>vehicleSummary(v).anyStopped).length;
   const today = todayISO();
-  const overdue = active.filter(v=>{ const t=targetPenyerahan(v); return t && t < today; }).length;
+  const overdue = overdueVehicles(list).length;
 
   return `
   <div class="stat-row">
@@ -863,10 +1049,11 @@ function renderStatTiles(list){
       <div class="value mono" style="color:${stopped>0?'var(--bad)':'inherit'}">${stopped}</div>
       <div class="sub">perlu tindak lanjut SA</div>
     </div>
-    <div class="stat-tile">
+    <div class="stat-tile clickable" role="button" tabindex="0" data-action="open-overdue" title="Klik untuk melihat daftar kendaraan overdue">
       <div class="label">Lewat Janji Penyerahan</div>
       <div class="value mono" style="color:${overdue>0?'var(--warn)':'inherit'}">${overdue}</div>
       <div class="sub">kendaraan overdue</div>
+      <div class="hint-click">Klik untuk lihat daftar ›</div>
     </div>
   </div>`;
 }
@@ -908,6 +1095,33 @@ function progressBarHTML(v){
   }).join('')}</div>`;
 }
 
+// Leadtime pelaporan asuransi: lapor ke asuransi -> SPK terbit. Kalau SPK belum terbit,
+// dihitung berjalan sampai hari ini (menunggu SPK). > 3 hari ditandai merah.
+const BATAS_LEADTIME_LAPOR_HARI = 3;
+function asuransiLaporInfo(v){
+  if(v.tipe_customer!=='Asuransi') return null;
+  const c = computeDerived(v);
+  const done = !!v.tanggal_terbit_spk;
+  const days = done ? c.leadtime_terbit_spk : c.masa_tunggu_spk;
+  return {
+    nama: v.nama_asuransi ? insurerLabel(v) : '',
+    days: (days==null || days<0) ? null : days,
+    done: done,
+    late: days!=null && days > BATAS_LEADTIME_LAPOR_HARI,
+  };
+}
+function asuransiLaporCell(v){
+  const a = asuransiLaporInfo(v);
+  if(!a) return '—';
+  const nama = a.nama ? '<div class="veh-id" style="font-size:12.5px;">'+esc(a.nama)+'</div>' : '<div class="veh-sub">(asuransi belum dipilih)</div>';
+  if(a.days==null) return nama+'<div class="veh-sub">belum lapor / belum ada tanggal</div>';
+  const label = fmtNum(a.days)+' hari';
+  const state = a.done ? 'SPK terbit' : 'menunggu SPK';
+  const cls = a.late ? 'badge-heavy' : 'badge-light';
+  const tip = 'Lapor asuransi → '+(a.done?'SPK terbit':'hari ini (SPK belum terbit)')+(a.late?' — lebih dari '+BATAS_LEADTIME_LAPOR_HARI+' hari':'');
+  return nama+'<div style="margin-top:3px;" title="'+esc(tip)+'"><span class="badge '+cls+'">'+label+'</span> <span class="veh-sub"'+(a.late?' style="color:var(--bad);font-weight:700;"':'')+'>'+state+(a.late?' · lewat '+BATAS_LEADTIME_LAPOR_HARI+' hari':'')+'</span></div>';
+}
+
 function renderTable(list){
   const rows = list.map((v,i)=>{
     const sum = vehicleSummary(v);
@@ -924,6 +1138,7 @@ function renderTable(list){
         <div>${esc(v.nama_pemilik||'—')}</div>
         <div class="veh-sub">${esc(v.tipe_customer||'—')}${v.tipe_customer==='Asuransi'&&v.nama_asuransi?' · '+esc(insurerLabel(v)):''}</div>
       </td>
+      <td>${asuransiLaporCell(v)}</td>
       <td>${v.jumlah_panel!=null?`<span class="badge ${badgeClass}">${esc(panelStatus(v.jumlah_panel)||'—')} · ${esc(v.jumlah_panel)}p</span>`:'—'}</td>
       <td style="min-width:170px;">
         <div style="font-size:12px;margin-bottom:4px;${sum.anyStopped?'color:var(--bad);font-weight:700;':''}">${esc(sum.currentLabel)}${sum.anyStopped?' ⏸':''}</div>
@@ -957,9 +1172,9 @@ function renderTable(list){
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>No</th><th>No Polisi</th><th>Kendaraan</th><th>Pemilik</th><th>Beban</th><th>Tahap &amp; Progress</th><th>SA</th><th>Janji</th>
+          <th>No</th><th>No Polisi</th><th>Kendaraan</th><th>Pemilik</th><th>Asuransi &amp; Lapor SPK</th><th>Beban</th><th>Tahap &amp; Progress</th><th>SA</th><th>Janji</th>
         </tr></thead>
-        <tbody>${rows || `<tr><td colspan="8"><div class="empty-state">Belum ada kendaraan. Klik “+ Kendaraan Baru” untuk mulai.</div></td></tr>`}</tbody>
+        <tbody>${rows || `<tr><td colspan="9"><div class="empty-state">Belum ada kendaraan. Klik “+ Kendaraan Baru” untuk mulai.</div></td></tr>`}</tbody>
       </table>
     </div>
   </div>`;
@@ -971,6 +1186,7 @@ function renderShell(){
     ${renderTopbar()}
     ${renderStatTiles(STATE.vehicles)}
     ${renderDistribution(STATE.vehicles)}
+    ${renderLeadtime(STATE.vehicles)}
     ${renderTable(list)}
     <p class="footer-note">${STATE.demoMode
       ? 'Mode pratinjau — data contoh, tidak tersimpan permanen. Lihat panduan setup Google Sheets untuk mengaktifkan penyimpanan sungguhan.'
@@ -999,6 +1215,9 @@ function buildFieldHTML(f, v, computed){
       display = val ? `<span class="badge badge-${val.toLowerCase()}">${val}</span>` : '—';
     } else {
       display = (val==null) ? '—' : (fmtNum(val)+(f.unit?' '+f.unit:''));
+      if(val!=null && (f.key==='leadtime_terbit_spk' || f.key==='masa_tunggu_spk') && val > BATAS_LEADTIME_LAPOR_HARI){
+        display = '<span style="color:var(--bad);font-weight:800;">'+display+' ⚠ &gt; '+BATAS_LEADTIME_LAPOR_HARI+' hari</span>';
+      }
     }
     return `<div class="field wide"><div class="computed-box"><span>${esc(f.label)}</span><span class="mono">${display}</span></div></div>`;
   }
@@ -1163,7 +1382,7 @@ function doRender(){
   if(!STATE.role){
     root.innerHTML = renderGate();
   } else {
-    root.innerHTML = renderShell() + renderDrawer() + renderNewModal();
+    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal();
   }
   if(oldDrawer){ const d = root.querySelector('.drawer'); if(d) d.scrollTop = drawerTop; }
   if(oldModal){ const m = root.querySelector('.modal-box'); if(m) m.scrollTop = modalTop; }
@@ -1453,8 +1672,16 @@ document.addEventListener('click', e=>{
     return;
   }
 
+  if(e.target.closest('[data-action="open-overdue"]')){ STATE.showOverdue = true; STATE.overdueSA = 'all'; render(); return; }
+  if(e.target.closest('[data-action="close-overdue"]')){ STATE.showOverdue = false; render(); return; }
+  if(e.target.matches('[data-action="close-overdue-overlay"]')){ STATE.showOverdue = false; render(); return; }
+  const saChip = e.target.closest('[data-action="overdue-filter-sa"]');
+  if(saChip){ STATE.overdueSA = saChip.dataset.sa; render(); return; }
+  if(e.target.closest('[data-action="toggle-leadtime"]')){ STATE.leadtimeOpen = STATE.leadtimeOpen===false; render(); return; }
+
   const row = e.target.closest('[data-action="open-vehicle"]');
   if(row){
+    STATE.showOverdue = false;
     STATE.openId = row.dataset.id;
     STATE.openStageKeys = new Set();
     const v = STATE.vehicles.find(x=>x.id===STATE.openId);
@@ -1531,6 +1758,8 @@ document.addEventListener('input', e=>{
 });
 
 document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && STATE.showOverdue){ STATE.showOverdue = false; render(); return; }
+  if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-overdue"]')){ e.preventDefault(); STATE.showOverdue = true; STATE.overdueSA = 'all'; render(); return; }
   if(e.key!=='Enter') return;
   if(e.target.id==='gateUserId'){ e.preventDefault(); const pw=document.getElementById('gatePassword'); if(pw) pw.focus(); return; }
   if(e.target.id==='gatePassword'){ e.preventDefault(); doLogin(); return; }
