@@ -707,7 +707,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false, showOverdue:false, overdueSA:'all', leadtimeOpen:true,
+  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -967,6 +967,135 @@ function renderLeadtime(list){
   </div>`;
 }
 
+// Kendaraan ASURANSI yang masih berjalan dengan leadtime Lapor Asuransi -> SPK terbit
+// lebih dari BATAS_LEADTIME_LAPOR_HARI (baik SPK sudah terbit tapi lama, maupun SPK belum
+// terbit dan sudah menunggu lebih dari batas). Urut dari yang paling lama.
+function lateInsurerVehicles(list){
+  const out = [];
+  list.forEach(function(v){
+    if(vehicleSummary(v).allDone) return;
+    const info = asuransiLaporInfo(v);
+    if(info && info.late) out.push({v:v, info:info});
+  });
+  out.sort(function(a,b){ return b.info.days - a.info.days; });
+  return out;
+}
+
+// Kendaraan yang SEDANG job stoppage (sudah dihentikan, belum dilanjutkan). Urut dari yang
+// paling lama berhenti. Info tahap, alasan & lama berhenti diambil dari field stoppage tahap tsb.
+function stoppedVehicles(list){
+  const out = [];
+  const now = Date.now();
+  list.forEach(function(v){
+    const sum = vehicleSummary(v);
+    if(sum.allDone || !sum.anyStopped) return;
+    for(let i=0;i<STAGE_DEFS.length;i++){
+      const st = stageState(i, v);
+      if(!st.stopped) continue;
+      const k = STAGE_DEFS[i].key;
+      const at = v[k+'_stop_at'];
+      let days = null;
+      if(at){ const t = new Date(at).getTime(); if(!isNaN(t)) days = Math.max(0, (now - t) / 86400000); }
+      out.push({v:v, stage:STAGE_DEFS[i].title, at:at, alasan:v[k+'_stop_alasan']||'', days:days});
+      break;
+    }
+  });
+  out.sort(function(a,b){ return (b.days==null?-1:b.days) - (a.days==null?-1:a.days); });
+  return out;
+}
+
+function renderStopModal(){
+  if(!STATE.showStop) return '';
+  const all = stoppedVehicles(STATE.vehicles);
+  const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
+  const counts = {};
+  all.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
+  const saNames = Object.keys(counts).sort();
+  const sel = STATE.stopSA && counts[STATE.stopSA] ? STATE.stopSA : 'all';
+  const items = sel==='all' ? all : all.filter(function(it){ return saKey(it.v)===sel; });
+  const chips = ['<button type="button" class="od-chip '+(sel==='all'?'active':'')+'" data-action="stop-filter-sa" data-sa="all">Semua SA · '+all.length+'</button>']
+    .concat(saNames.map(function(n){
+      return '<button type="button" class="od-chip '+(sel===n?'active':'')+'" data-action="stop-filter-sa" data-sa="'+esc(n)+'">'+esc(n)+' · '+counts[n]+'</button>';
+    })).join('');
+  const rows = items.map(function(it, i){
+    const v = it.v;
+    return `
+    <tr data-action="open-vehicle" data-id="${esc(v.id)}">
+      <td class="mono">${i+1}</td>
+      <td class="mono veh-id">${esc(v.no_polisi||'—')}<div class="veh-sub">${esc(v.nama_pemilik||'—')}</div></td>
+      <td><b>${esc(v.petugas_sa||'—')}</b></td>
+      <td style="color:var(--bad);font-weight:700;">${esc(it.stage)} ⏸<div class="veh-sub" style="font-weight:500;">Sejak ${it.at?esc(String(it.at).replace('T',' ')):'—'}</div></td>
+      <td>${it.alasan?esc(it.alasan):'<span class="veh-sub">(alasan belum diisi)</span>'}</td>
+      <td><span class="badge badge-heavy">${it.days==null?'—':fmtLeadtime(it.days).replace(/<[^>]+>/g,'')}</span></td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="modal-mask" data-action="close-stop-overlay">
+    <div class="modal-box wide" data-stop-close>
+      <div class="od-head">
+        <div>
+          <h2>Kendaraan Job Stoppage</h2>
+          <div class="sub">Pekerjaan sedang berhenti dan belum dilanjutkan. Urut dari yang paling lama berhenti. Klik baris untuk membuka detail.</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="close-stop">✕</button>
+      </div>
+      <div class="od-chips">${chips}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>No Polisi / Pemilik</th><th>Nama SA</th><th>Tahap berhenti</th><th>Alasan</th><th>Lama berhenti</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6"><div class="empty-state">Tidak ada kendaraan yang sedang job stoppage. 🎉</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderInsLateModal(){
+  if(!STATE.showInsLate) return '';
+  const all = lateInsurerVehicles(STATE.vehicles);
+  const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
+  const counts = {};
+  all.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
+  const saNames = Object.keys(counts).sort();
+  const sel = STATE.insSA && counts[STATE.insSA] ? STATE.insSA : 'all';
+  const items = sel==='all' ? all : all.filter(function(it){ return saKey(it.v)===sel; });
+  const chips = ['<button type="button" class="od-chip '+(sel==='all'?'active':'')+'" data-action="ins-filter-sa" data-sa="all">Semua SA · '+all.length+'</button>']
+    .concat(saNames.map(function(n){
+      return '<button type="button" class="od-chip '+(sel===n?'active':'')+'" data-action="ins-filter-sa" data-sa="'+esc(n)+'">'+esc(n)+' · '+counts[n]+'</button>';
+    })).join('');
+  const rows = items.map(function(it, i){
+    const v = it.v, sum = vehicleSummary(v), info = it.info;
+    return `
+    <tr data-action="open-vehicle" data-id="${esc(v.id)}">
+      <td class="mono">${i+1}</td>
+      <td class="mono veh-id">${esc(v.no_polisi||'—')}<div class="veh-sub">${esc(v.nama_pemilik||'—')}</div></td>
+      <td><b>${esc(v.petugas_sa||'—')}</b></td>
+      <td><b>${esc(info.nama||'—')}</b><div class="veh-sub">Lapor: ${fmtDate(v.tanggal_lapor_asuransi)}${v.tanggal_terbit_spk?' · SPK: '+fmtDate(v.tanggal_terbit_spk):''}</div></td>
+      <td>${esc(sum.currentLabel)}${sum.anyStopped?' ⏸':''}</td>
+      <td><span class="badge badge-heavy">${info.days} hari</span><div class="veh-sub" style="color:${info.done?'var(--ink-3)':'var(--bad)'};font-weight:${info.done?'500':'700'};">${info.done?'SPK sudah terbit':'Menunggu SPK'}</div></td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="modal-mask" data-action="close-ins-overlay">
+    <div class="modal-box wide" data-stop-close>
+      <div class="od-head">
+        <div>
+          <h2>Lapor Asuransi Lebih dari ${BATAS_LEADTIME_LAPOR_HARI} Hari</h2>
+          <div class="sub">Hanya kendaraan asuransi yang sudah lewat batas (SPK sudah terbit tapi lama, atau masih menunggu SPK). Urut dari yang paling lama. Klik baris untuk membuka detail.</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="close-ins">✕</button>
+      </div>
+      <div class="od-chips">${chips}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>No Polisi / Pemilik</th><th>Nama SA</th><th>Asuransi</th><th>Tahap saat ini</th><th>Leadtime</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6"><div class="empty-state">Tidak ada kendaraan asuransi yang lewat '+BATAS_LEADTIME_LAPOR_HARI+' hari. 🎉</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderOverdueModal(){
   if(!STATE.showOverdue) return '';
   const all = overdueVehicles(STATE.vehicles);
@@ -1023,6 +1152,7 @@ function renderStatTiles(list){
   const stopped = active.filter(v=>vehicleSummary(v).anyStopped).length;
   const today = todayISO();
   const overdue = overdueVehicles(list).length;
+  const insLate = lateInsurerVehicles(list).length;
 
   return `
   <div class="stat-row">
@@ -1044,16 +1174,23 @@ function renderStatTiles(list){
         <span class="badge badge-heavy">Heavy ${byPanel.Heavy}</span>
       </div>
     </div>
-    <div class="stat-tile">
+    <div class="stat-tile clickable" role="button" tabindex="0" data-action="open-stop" title="Klik untuk melihat daftar kendaraan job stoppage">
       <div class="label">Job Stoppage Aktif</div>
       <div class="value mono" style="color:${stopped>0?'var(--bad)':'inherit'}">${stopped}</div>
       <div class="sub">perlu tindak lanjut SA</div>
+      <div class="hint-click" style="color:var(--bad);">Klik untuk lihat daftar ›</div>
     </div>
     <div class="stat-tile clickable" role="button" tabindex="0" data-action="open-overdue" title="Klik untuk melihat daftar kendaraan overdue">
       <div class="label">Lewat Janji Penyerahan</div>
       <div class="value mono" style="color:${overdue>0?'var(--warn)':'inherit'}">${overdue}</div>
       <div class="sub">kendaraan overdue</div>
       <div class="hint-click">Klik untuk lihat daftar ›</div>
+    </div>
+    <div class="stat-tile clickable" role="button" tabindex="0" data-action="open-ins" title="Klik untuk melihat kendaraan asuransi yang lapor asuransi-nya lebih dari ${BATAS_LEADTIME_LAPOR_HARI} hari">
+      <div class="label">Lapor Asuransi &gt; ${BATAS_LEADTIME_LAPOR_HARI} Hari</div>
+      <div class="value mono" style="color:${insLate>0?'var(--bad)':'inherit'}">${insLate}</div>
+      <div class="sub">kendaraan asuransi terlalu lama</div>
+      <div class="hint-click" style="color:var(--bad);">Klik untuk lihat daftar ›</div>
     </div>
   </div>`;
 }
@@ -1390,7 +1527,7 @@ function doRender(){
   if(!STATE.role){
     root.innerHTML = renderGate();
   } else {
-    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal();
+    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal();
   }
   if(oldDrawer){ const d = root.querySelector('.drawer'); if(d) d.scrollTop = drawerTop; }
   if(oldModal){ const m = root.querySelector('.modal-box'); if(m) m.scrollTop = modalTop; }
@@ -1685,11 +1822,21 @@ document.addEventListener('click', e=>{
   if(e.target.matches('[data-action="close-overdue-overlay"]')){ STATE.showOverdue = false; render(); return; }
   const saChip = e.target.closest('[data-action="overdue-filter-sa"]');
   if(saChip){ STATE.overdueSA = saChip.dataset.sa; render(); return; }
+  if(e.target.closest('[data-action="open-stop"]')){ STATE.showStop = true; STATE.stopSA = 'all'; render(); return; }
+  if(e.target.closest('[data-action="close-stop"]')){ STATE.showStop = false; render(); return; }
+  if(e.target.matches('[data-action="close-stop-overlay"]')){ STATE.showStop = false; render(); return; }
+  const stopChip = e.target.closest('[data-action="stop-filter-sa"]');
+  if(stopChip){ STATE.stopSA = stopChip.dataset.sa; render(); return; }
+  if(e.target.closest('[data-action="open-ins"]')){ STATE.showInsLate = true; STATE.insSA = 'all'; render(); return; }
+  if(e.target.closest('[data-action="close-ins"]')){ STATE.showInsLate = false; render(); return; }
+  if(e.target.matches('[data-action="close-ins-overlay"]')){ STATE.showInsLate = false; render(); return; }
+  const insChip = e.target.closest('[data-action="ins-filter-sa"]');
+  if(insChip){ STATE.insSA = insChip.dataset.sa; render(); return; }
   if(e.target.closest('[data-action="toggle-leadtime"]')){ STATE.leadtimeOpen = STATE.leadtimeOpen===false; render(); return; }
 
   const row = e.target.closest('[data-action="open-vehicle"]');
   if(row){
-    STATE.showOverdue = false;
+    STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false;
     STATE.openId = row.dataset.id;
     STATE.openStageKeys = new Set();
     const v = STATE.vehicles.find(x=>x.id===STATE.openId);
@@ -1766,6 +1913,10 @@ document.addEventListener('input', e=>{
 });
 
 document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && STATE.showStop){ STATE.showStop = false; render(); return; }
+  if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-stop"]')){ e.preventDefault(); STATE.showStop = true; STATE.stopSA = 'all'; render(); return; }
+  if(e.key==='Escape' && STATE.showInsLate){ STATE.showInsLate = false; render(); return; }
+  if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-ins"]')){ e.preventDefault(); STATE.showInsLate = true; STATE.insSA = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showOverdue){ STATE.showOverdue = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-overdue"]')){ e.preventDefault(); STATE.showOverdue = true; STATE.overdueSA = 'all'; render(); return; }
   if(e.key!=='Enter') return;
