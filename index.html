@@ -1060,24 +1060,32 @@ function renderStatTiles(list){
 
 function renderDistribution(list){
   const counts = STAGE_DEFS.map(s=>0);
+  const doneCounts = STAGE_DEFS.map(s=>0); // sudah SELESAI tahap ini (walau kendaraan sudah pindah ke tahap lain)
   let selesai = 0;
   list.forEach(v=>{
     const sum = vehicleSummary(v);
     if(sum.allDone) selesai++; else counts[sum.currentIdx]++;
+    STAGE_DEFS.forEach((s,i)=>{
+      // tahap yang punya finishField: selesai HANYA bila field itu terisi (mis. Part Arrival Aktual);
+      // tahap tanpa finishField: pakai status cascade/lunas dari stageState().
+      const fin = s.finishField ? !!v[s.finishField] : stageState(i, v).finished;
+      if(fin) doneCounts[i]++;
+    });
   });
-  const rows = STAGE_DEFS.map((s,i)=>({label:s.title, n:counts[i]})).concat([{label:'Selesai', n:selesai}]);
+  const rows = STAGE_DEFS.map((s,i)=>({label:s.title, n:counts[i], done:doneCounts[i]})).concat([{label:'Selesai', n:selesai, done:null}]);
   const max = Math.max(1, ...rows.map(r=>r.n));
   return `
   <div class="panel" style="margin-bottom:16px;">
-    <div class="panel-head"><h2>Distribusi Tahap</h2><span class="sub" style="font-size:11.5px;color:var(--ink-3);">jumlah kendaraan per tahap saat ini</span></div>
+    <div class="panel-head"><h2>Distribusi Tahap</h2><span class="sub" style="font-size:11.5px;color:var(--ink-3);">bar = sedang di tahap ini &nbsp;·&nbsp; <span style="color:var(--good);font-weight:700;">✓</span> = sudah selesai tahap ini</span></div>
     <div class="panel-body" style="display:flex;flex-direction:column;gap:7px;">
       ${rows.map(r=>`
-        <div style="display:grid;grid-template-columns:150px 1fr 28px;align-items:center;gap:10px;">
+        <div style="display:grid;grid-template-columns:150px 1fr 28px 44px;align-items:center;gap:10px;">
           <span style="font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.label)}</span>
           <div style="background:var(--surface-2);border-radius:5px;height:9px;overflow:hidden;">
             <div style="width:${(r.n/max*100).toFixed(0)}%;background:${r.label==='Selesai'?'var(--good)':'var(--accent)'};height:100%;border-radius:5px;"></div>
           </div>
           <span class="mono" style="font-size:12px;text-align:right;">${r.n}</span>
+          <span class="mono" title="Sudah selesai tahap ini" style="font-size:11.5px;text-align:right;color:var(--good);">${r.done==null?'':'✓ '+r.done}</span>
         </div>`).join('')}
     </div>
   </div>`;
