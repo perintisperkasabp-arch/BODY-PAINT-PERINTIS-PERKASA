@@ -1325,10 +1325,19 @@ function renderTable(list){
   </div>`;
 }
 
+function renderBackendWarning(){
+  if(STATE.demoMode || !STATE.backendOutdated) return '';
+  return `<div role="alert" style="background:var(--bad-soft,#fde8e8);border:1px solid var(--bad);color:var(--bad);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.5;">
+    <b>⚠ Backend Google Sheets belum diperbarui.</b> Kolom-kolom baru (mis. <i>Sumber Part</i>, ADD SPK, Reminder SPK ke-2/3, Akurasi QC) <b>tidak tersimpan</b> sehingga isiannya akan hilang lagi setelah sinkron.
+    Perbaikan: buka Google Apps Script → tempel <code>Code.gs</code> terbaru → <b>Deploy → Manage deployments → ✎ (edit) → Version: New version → Deploy</b>.
+  </div>`;
+}
+
 function renderShell(){
   const list = filteredVehicles();
   return `
     ${renderTopbar()}
+    ${renderBackendWarning()}
     ${renderStatTiles(STATE.vehicles)}
     ${renderDistribution(STATE.vehicles)}
     ${renderLeadtime(STATE.vehicles)}
@@ -1668,6 +1677,11 @@ async function loadVehicles(){
     const res = await apiGet({action:'list'});
     if(!res || res.ok===false) throw new Error(res && res.error || 'Respons API tidak valid');
     STATE.vehicles = res.vehicles || [];
+    // Deteksi backend (Code.gs) yang belum diperbarui: Apps Script lama tidak mengenal kolom
+    // baru (mis. sumber_part dari Revisi v2.9/v3.6), jadi field itu tidak pernah tersimpan &
+    // pilihan user "hilang lagi" setelah sinkron. listVehicles_ versi baru SELALU menyertakan
+    // key tsb (null bila kosong), versi lama tidak — jadi absennya key = backend lama.
+    STATE.backendOutdated = STATE.vehicles.length>0 && !Object.prototype.hasOwnProperty.call(STATE.vehicles[0], 'sumber_part');
     STATE.connError = '';
     scheduleRender();
   }catch(err){
