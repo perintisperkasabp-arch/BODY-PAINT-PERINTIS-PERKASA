@@ -245,6 +245,10 @@
   .stat-tile.clickable{cursor:pointer;transition:border-color .12s,box-shadow .12s;}
   .stat-tile.clickable:hover{border-color:var(--warn);box-shadow:var(--shadow-md);}
   .stat-tile.clickable:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .pt-sum{display:flex;gap:10px;flex-wrap:wrap;padding:0 0 10px;}
+  .pt-sum > div{background:var(--surface-2);border-radius:10px;padding:8px 14px;min-width:120px;}
+  .pt-sum .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:700;}
+  .pt-sum .n{font-family:var(--font-display);font-size:22px;line-height:1.2;}
   .stat-tile .hint-click{font-size:11px;color:var(--warn);font-weight:700;margin-top:4px;}
   .lt-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2);padding:10px 18px 0;}
   .lt-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
@@ -707,7 +711,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', leadtimeOpen:true,
+  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -1004,6 +1008,101 @@ function stoppedVehicles(list){
   return out;
 }
 
+// Kendaraan yang SEDANG MENUNGGU PART: ada pesanan part (order awal atau ADD SPK ke-1..3)
+// yang Tanggal Order-nya terisi tapi Tanggal Arrival (Aktual)-nya masih kosong. Leadtime =
+// lama menunggu sejak Tanggal Order sampai hari ini. ETD efektif = Perubahan ETD kalau ada,
+// kalau tidak ETD awal. Satu baris per kendaraan (pesanan paling lama menunggu jadi acuan).
+function pendingPartOrders(v){
+  const out = [];
+  const today = todayISO();
+  function add(label, sumber, order, etd, etdChanged, arrival){
+    if(!order || arrival) return;
+    const d = daysBetween(order, today);
+    const left = etd ? daysBetween(today, etd) : null;
+    out.push({label:label, sumber:sumber||'', order:order, etd:etd||'', etdChanged:!!etdChanged,
+      days: d==null ? 0 : Math.max(0, Math.round(d)), etdLeft: left==null ? null : Math.round(left)});
+  }
+  add('Part awal', v.sumber_part, v.tanggal_order_part, v.perubahan_etd||v.etd, !!v.perubahan_etd, v.tanggal_part_arrival);
+  for(let n=1;n<=3;n++){
+    const p = 'part_add'+n+'_';
+    add('ADD SPK ke-'+n, v[p+'sumber'], v[p+'tanggal_order'], v[p+'perubahan_etd']||v[p+'etd'], !!v[p+'perubahan_etd'], v[p+'arrival']);
+  }
+  return out;
+}
+
+function waitingPartVehicles(list){
+  const out = [];
+  list.forEach(function(v){
+    if(vehicleSummary(v).allDone) return;
+    const orders = pendingPartOrders(v);
+    if(!orders.length) return;
+    orders.sort(function(a,b){ return b.days - a.days; });
+    out.push({v:v, main:orders[0], others:orders.length-1});
+  });
+  out.sort(function(a,b){ return b.main.days - a.main.days; });
+  return out;
+}
+
+function renderPartModal(){
+  if(!STATE.showPart) return '';
+  const all = waitingPartVehicles(STATE.vehicles);
+  const srcKey = function(it){ return it.main.sumber || '(belum dipilih)'; };
+  const counts = {};
+  all.forEach(function(it){ const k = srcKey(it); counts[k] = (counts[k]||0)+1; });
+  const srcNames = Object.keys(counts).sort();
+  const sel = STATE.partSumber && counts[STATE.partSumber] ? STATE.partSumber : 'all';
+  const items = sel==='all' ? all : all.filter(function(it){ return srcKey(it)===sel; });
+  const chips = ['<button type="button" class="od-chip '+(sel==='all'?'active':'')+'" data-action="part-filter" data-src="all">Semua sumber · '+all.length+'</button>']
+    .concat(srcNames.map(function(n){
+      return '<button type="button" class="od-chip '+(sel===n?'active':'')+'" data-action="part-filter" data-src="'+esc(n)+'">'+esc(n)+' · '+counts[n]+'</button>';
+    })).join('');
+  const avg = items.length ? items.reduce(function(a,it){ return a+it.main.days; },0)/items.length : null;
+  const longest = items.length ? items[0].main.days : null;
+  const lateEtd = items.filter(function(it){ return it.main.etdLeft!=null && it.main.etdLeft<0; }).length;
+  const rows = items.map(function(it, i){
+    const v = it.v, m = it.main, sum = vehicleSummary(v);
+    let etdTxt;
+    if(!m.etd) etdTxt = '<span class="veh-sub">ETD belum diisi</span>';
+    else if(m.etdLeft<0) etdTxt = '<div class="veh-sub" style="color:var(--bad);font-weight:700;">Lewat ETD '+Math.abs(m.etdLeft)+' hari</div>';
+    else if(m.etdLeft===0) etdTxt = '<div class="veh-sub" style="color:var(--warn);font-weight:700;">ETD hari ini</div>';
+    else etdTxt = '<div class="veh-sub">ETD '+m.etdLeft+' hari lagi</div>';
+    return `
+    <tr data-action="open-vehicle" data-id="${esc(v.id)}">
+      <td class="mono">${i+1}</td>
+      <td class="mono veh-id">${esc(v.no_polisi||'—')}<div class="veh-sub">${esc(v.nama_pemilik||'—')}</div></td>
+      <td><b>${esc(v.petugas_sa||'—')}</b><div class="veh-sub">${esc(sum.currentLabel)}</div></td>
+      <td><b>${esc(m.sumber||'Sumber belum dipilih')}</b><div class="veh-sub">${esc(m.label)} · order ${fmtDate(m.order)}${it.others>0?' · +'+it.others+' order lain':''}</div></td>
+      <td>${m.etd?fmtDate(m.etd)+(m.etdChanged?'<div class="veh-sub" style="color:var(--warn);">ETD diubah</div>':''):''}${etdTxt}</td>
+      <td><span class="badge ${m.etdLeft!=null&&m.etdLeft<0?'badge-heavy':'badge-medium'}">${m.days} hari</span></td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="modal-mask" data-action="close-part-overlay">
+    <div class="modal-box wide" data-stop-close>
+      <div class="od-head">
+        <div>
+          <h2>Kendaraan Menunggu Part</h2>
+          <div class="sub">Part sudah dipesan tapi belum datang (order terisi, Tanggal Arrival kosong). Leadtime = lama menunggu sejak Tanggal Order. Urut dari yang paling lama. Klik baris untuk membuka detail.</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="close-part">✕</button>
+      </div>
+      <div class="pt-sum">
+        <div><div class="k">Menunggu</div><div class="n">${items.length}</div></div>
+        <div><div class="k">Rata-rata leadtime</div><div class="n">${avg==null?'—':avg.toFixed(1)+' hr'}</div></div>
+        <div><div class="k">Terlama</div><div class="n">${longest==null?'—':longest+' hr'}</div></div>
+        <div><div class="k">Lewat ETD</div><div class="n" style="color:${lateEtd>0?'var(--bad)':'inherit'}">${lateEtd}</div></div>
+      </div>
+      <div class="od-chips">${chips}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>No Polisi / Pemilik</th><th>SA / Tahap</th><th>Part</th><th>ETD</th><th>Leadtime</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6"><div class="empty-state">Tidak ada kendaraan yang sedang menunggu part. 🎉</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderStopModal(){
   if(!STATE.showStop) return '';
   const all = stoppedVehicles(STATE.vehicles);
@@ -1153,6 +1252,8 @@ function renderStatTiles(list){
   const today = todayISO();
   const overdue = overdueVehicles(list).length;
   const insLate = lateInsurerVehicles(list).length;
+  const waitPart = waitingPartVehicles(list);
+  const waitPartAvg = waitPart.length ? waitPart.reduce(function(a,it){ return a+it.main.days; },0)/waitPart.length : null;
 
   return `
   <div class="stat-row">
@@ -1184,6 +1285,12 @@ function renderStatTiles(list){
       <div class="label">Lewat Janji Penyerahan</div>
       <div class="value mono" style="color:${overdue>0?'var(--warn)':'inherit'}">${overdue}</div>
       <div class="sub">kendaraan overdue</div>
+      <div class="hint-click">Klik untuk lihat daftar ›</div>
+    </div>
+    <div class="stat-tile clickable" role="button" tabindex="0" data-action="open-part" title="Klik untuk melihat kendaraan yang sedang menunggu part beserta leadtime-nya">
+      <div class="label">Menunggu Part</div>
+      <div class="value mono" style="color:${waitPart.length>0?'var(--warn)':'inherit'}">${waitPart.length}</div>
+      <div class="sub">${waitPartAvg==null?'tidak ada yang menunggu':'rata-rata menunggu '+waitPartAvg.toFixed(1)+' hari'}</div>
       <div class="hint-click">Klik untuk lihat daftar ›</div>
     </div>
     <div class="stat-tile clickable" role="button" tabindex="0" data-action="open-ins" title="Klik untuk melihat kendaraan asuransi yang lapor asuransi-nya lebih dari ${BATAS_LEADTIME_LAPOR_HARI} hari">
@@ -1536,7 +1643,7 @@ function doRender(){
   if(!STATE.role){
     root.innerHTML = renderGate();
   } else {
-    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal();
+    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal() + renderPartModal();
   }
   if(oldDrawer){ const d = root.querySelector('.drawer'); if(d) d.scrollTop = drawerTop; }
   if(oldModal){ const m = root.querySelector('.modal-box'); if(m) m.scrollTop = modalTop; }
@@ -1836,6 +1943,11 @@ document.addEventListener('click', e=>{
   if(e.target.matches('[data-action="close-overdue-overlay"]')){ STATE.showOverdue = false; render(); return; }
   const saChip = e.target.closest('[data-action="overdue-filter-sa"]');
   if(saChip){ STATE.overdueSA = saChip.dataset.sa; render(); return; }
+  if(e.target.closest('[data-action="open-part"]')){ STATE.showPart = true; STATE.partSumber = 'all'; render(); return; }
+  if(e.target.closest('[data-action="close-part"]')){ STATE.showPart = false; render(); return; }
+  if(e.target.matches('[data-action="close-part-overlay"]')){ STATE.showPart = false; render(); return; }
+  const partChip = e.target.closest('[data-action="part-filter"]');
+  if(partChip){ STATE.partSumber = partChip.dataset.src; render(); return; }
   if(e.target.closest('[data-action="open-stop"]')){ STATE.showStop = true; STATE.stopSA = 'all'; render(); return; }
   if(e.target.closest('[data-action="close-stop"]')){ STATE.showStop = false; render(); return; }
   if(e.target.matches('[data-action="close-stop-overlay"]')){ STATE.showStop = false; render(); return; }
@@ -1850,7 +1962,7 @@ document.addEventListener('click', e=>{
 
   const row = e.target.closest('[data-action="open-vehicle"]');
   if(row){
-    STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false;
+    STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false; STATE.showPart = false;
     STATE.openId = row.dataset.id;
     STATE.openStageKeys = new Set();
     const v = STATE.vehicles.find(x=>x.id===STATE.openId);
@@ -1927,6 +2039,8 @@ document.addEventListener('input', e=>{
 });
 
 document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && STATE.showPart){ STATE.showPart = false; render(); return; }
+  if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-part"]')){ e.preventDefault(); STATE.showPart = true; STATE.partSumber = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showStop){ STATE.showStop = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-stop"]')){ e.preventDefault(); STATE.showStop = true; STATE.stopSA = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showInsLate){ STATE.showInsLate = false; render(); return; }
