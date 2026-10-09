@@ -1290,7 +1290,12 @@ function renderStatTiles(list){
   const withTotal = list.map(v=>computeDerived(v).total_leadtime).filter(x=>x!=null);
   const avgLeadtime = withTotal.length ? (withTotal.reduce((a,b)=>a+b,0)/withTotal.length) : null;
   const byPanel = {Light:0,Medium:0,Heavy:0};
-  active.forEach(v=>{ const s=panelStatus(v.jumlah_panel); if(s) byPanel[s]++; });
+  let totalPanel = 0, noPanel = 0;
+  active.forEach(v=>{
+    const s=panelStatus(v.jumlah_panel); if(s) byPanel[s]++;
+    if(s) totalPanel += Number(v.jumlah_panel); else noPanel++;
+  });
+  const totalPanelTxt = String(Math.round(totalPanel*10)/10);
   const stopped = active.filter(v=>vehicleSummary(v).anyStopped).length;
   const today = todayISO();
   const overdue = overdueVehicles(list).length;
@@ -1312,6 +1317,8 @@ function renderStatTiles(list){
     </div>
     <div class="stat-tile">
       <div class="label">Beban Kerja Aktif</div>
+      <div class="value mono" title="Jumlah panel seluruh kendaraan aktif">${totalPanelTxt}</div>
+      <div class="sub">total panel dari ${active.length-noPanel} kendaraan${noPanel?` (${noPanel} belum isi jumlah panel)`:''}</div>
       <div class="value" style="font-size:15px;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
         <span class="badge badge-light">Light ${byPanel.Light}</span>
         <span class="badge badge-medium">Medium ${byPanel.Medium}</span>
