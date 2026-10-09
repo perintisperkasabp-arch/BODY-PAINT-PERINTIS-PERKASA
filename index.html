@@ -153,6 +153,12 @@
   .panel-head h2{font-size:17px;}
   .panel-body{padding:14px 18px;}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .period-bar{display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px;}
+  .period-title{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);}
+  .period-ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .period-ctrls label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);}
+  .period-ctrls select{width:auto;min-width:120px;}
+  .period-info{margin-left:auto;font-size:12.5px;color:var(--ink-2);}
   .toolbar input,.toolbar select{width:auto;min-width:140px;}
   .search-box{position:relative;flex:1;min-width:180px;}
   .search-box input{padding-left:30px;}
@@ -754,7 +760,7 @@ const STATE = {
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
   showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', leadtimeOpen:true,
-  search:'', filterStage:'all', filterCustomer:'all',
+  search:'', filterStage:'all', filterCustomer:'all', periodMonth:'all', periodYear:'all', periodBasis:'awal',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
 
@@ -863,9 +869,89 @@ function doLogin(){
 /* =========================================================================
    RENDER — SHELL (topbar, dashboard, tabel)
    ========================================================================= */
+/* ---- Filter PERIODE (bulan & tahun) ---------------------------------------------------
+   Dasar tanggal: 'lapor' = Tanggal Lapor Asuransi, 'pkb' = Tanggal Buka PKB/WO (Masuk Asuransi
+   untuk customer asuransi, Masuk/PKB Cash untuk lainnya), 'awal' = yang PALING AWAL dari keduanya.
+   Mode 'awal' memakai tanggal dibuatnya data sebagai cadangan bila kedua tanggal belum diisi,
+   supaya kendaraan yang baru diinput tidak "hilang". */
+const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function ymdOf(x){
+  if(x==null || x==='') return null;
+  const str = String(x);
+  if(/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0,10);
+  const d = new Date(x);
+  return isNaN(d.getTime()) ? null : d.toISOString().slice(0,10);
+}
+function pkbDateOf(v){
+  return ymdOf(v.tipe_customer==='Asuransi' ? (v.tanggal_masuk_asuransi || v.tanggal_masuk_cash) : (v.tanggal_masuk_cash || v.tanggal_masuk_asuransi));
+}
+function periodDateOf(v, basis){
+  const lapor = ymdOf(v.tanggal_lapor_asuransi), pkb = pkbDateOf(v);
+  if(basis==='lapor') return lapor;
+  if(basis==='pkb') return pkb;
+  const c = [lapor, pkb].filter(Boolean).sort();
+  return c.length ? c[0] : ymdOf(v.createdAt);
+}
+function periodActive(){ return STATE.periodMonth!=='all' || STATE.periodYear!=='all'; }
+function periodVehicles(){
+  if(!periodActive()) return STATE.vehicles;
+  return STATE.vehicles.filter(function(v){
+    const d = periodDateOf(v, STATE.periodBasis);
+    if(!d) return false;
+    if(STATE.periodYear!=='all' && d.slice(0,4)!==String(STATE.periodYear)) return false;
+    if(STATE.periodMonth!=='all' && Number(d.slice(5,7))!==Number(STATE.periodMonth)) return false;
+    return true;
+  });
+}
+function periodLabel(){
+  const m = STATE.periodMonth==='all' ? '' : BULAN_ID[Number(STATE.periodMonth)-1];
+  const y = STATE.periodYear==='all' ? '' : String(STATE.periodYear);
+  return (m+' '+y).trim() || 'Semua periode';
+}
+function periodYears(){
+  const set = {};
+  set[new Date().getFullYear()] = true;
+  STATE.vehicles.forEach(function(v){
+    [ymdOf(v.tanggal_lapor_asuransi), pkbDateOf(v), ymdOf(v.createdAt)].forEach(function(d){ if(d) set[d.slice(0,4)] = true; });
+  });
+  if(STATE.periodYear!=='all') set[STATE.periodYear] = true;
+  return Object.keys(set).sort().reverse();
+}
+function renderPeriodBar(){
+  const shown = periodVehicles().length, total = STATE.vehicles.length;
+  const active = periodActive();
+  return `
+  <div class="panel period-bar">
+    <div class="period-title">Periode Data</div>
+    <div class="period-ctrls">
+      <label>Bulan
+        <select id="periodMonth">
+          <option value="all" ${STATE.periodMonth==='all'?'selected':''}>Semua Bulan</option>
+          ${BULAN_ID.map(function(n,i){ return '<option value="'+(i+1)+'" '+(String(STATE.periodMonth)===String(i+1)?'selected':'')+'>'+n+'</option>'; }).join('')}
+        </select>
+      </label>
+      <label>Tahun
+        <select id="periodYear">
+          <option value="all" ${STATE.periodYear==='all'?'selected':''}>Semua Tahun</option>
+          ${periodYears().map(function(y){ return '<option value="'+y+'" '+(String(STATE.periodYear)===String(y)?'selected':'')+'>'+y+'</option>'; }).join('')}
+        </select>
+      </label>
+      <label>Berdasarkan
+        <select id="periodBasis">
+          <option value="awal" ${STATE.periodBasis==='awal'?'selected':''}>Awal Proses (Lapor Asuransi / Buka PKB-WO)</option>
+          <option value="lapor" ${STATE.periodBasis==='lapor'?'selected':''}>Tanggal Lapor Asuransi</option>
+          <option value="pkb" ${STATE.periodBasis==='pkb'?'selected':''}>Tanggal Buka PKB / WO</option>
+        </select>
+      </label>
+      ${active?'<button type="button" class="btn btn-ghost btn-sm" data-action="period-reset">Reset</button>':''}
+    </div>
+    <div class="period-info">${active?'<b>'+esc(periodLabel())+'</b> · ':''}${shown} dari ${total} kendaraan</div>
+  </div>`;
+}
+
 function filteredVehicles(){
   const q = STATE.search.trim().toLowerCase();
-  return STATE.vehicles.filter(v=>{
+  return periodVehicles().filter(v=>{
     const sum = vehicleSummary(v);
     if(STATE.filterStage!=='all'){
       if(STATE.filterStage==='selesai' && !sum.allDone) return false;
@@ -1098,7 +1184,7 @@ function noPanelVehicles(list){
 
 function renderNoPanelModal(){
   if(!STATE.showNoPanel) return '';
-  const all = noPanelVehicles(STATE.vehicles);
+  const all = noPanelVehicles(periodVehicles());
   const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
   const counts = {};
   all.forEach(function(v){ const k = saKey(v); counts[k] = (counts[k]||0)+1; });
@@ -1143,7 +1229,7 @@ function renderNoPanelModal(){
 
 function renderPartModal(){
   if(!STATE.showPart) return '';
-  const all = waitingPartVehicles(STATE.vehicles);
+  const all = waitingPartVehicles(periodVehicles());
   const srcKey = function(it){ return it.main.sumber || '(belum dipilih)'; };
   const counts = {};
   all.forEach(function(it){ const k = srcKey(it); counts[k] = (counts[k]||0)+1; });
@@ -1203,7 +1289,7 @@ function renderPartModal(){
 
 function renderStopModal(){
   if(!STATE.showStop) return '';
-  const all = stoppedVehicles(STATE.vehicles);
+  const all = stoppedVehicles(periodVehicles());
   const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
   const counts = {};
   all.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
@@ -1249,7 +1335,7 @@ function renderStopModal(){
 
 function renderInsLateModal(){
   if(!STATE.showInsLate) return '';
-  const all = lateInsurerVehicles(STATE.vehicles);
+  const all = lateInsurerVehicles(periodVehicles());
   const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
   const counts = {};
   all.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
@@ -1295,7 +1381,7 @@ function renderInsLateModal(){
 
 function renderOverdueModal(){
   if(!STATE.showOverdue) return '';
-  const all = overdueVehicles(STATE.vehicles);
+  const all = overdueVehicles(periodVehicles());
   const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
   const counts = {};
   all.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
@@ -1553,9 +1639,10 @@ function renderShell(){
   return `
     ${renderTopbar()}
     ${renderBackendWarning()}
-    ${renderStatTiles(STATE.vehicles)}
-    ${renderDistribution(STATE.vehicles)}
-    ${renderLeadtime(STATE.vehicles)}
+    ${renderPeriodBar()}
+    ${renderStatTiles(periodVehicles())}
+    ${renderDistribution(periodVehicles())}
+    ${renderLeadtime(periodVehicles())}
     ${renderTable(list)}
     <p class="footer-note">${STATE.demoMode
       ? 'Mode pratinjau — data contoh, tidak tersimpan permanen. Lihat panduan setup Google Sheets untuk mengaktifkan penyimpanan sungguhan.'
@@ -1952,7 +2039,8 @@ function exportCSV(){
     ...ALL_FIELDS.map(f=>({key:f.key, label:f.label, computed:f.type==='computed'})),
   ];
   const header = cols.map(c=>csvEscape(c.label)).join(',');
-  const lines = STATE.vehicles.map((v,i)=>{
+  const exportList = periodVehicles();
+  const lines = exportList.map((v,i)=>{
     const computed = computeDerived(v);
     return cols.map(c=>{
       if(c.key==='_no') return i+1;
@@ -1963,7 +2051,7 @@ function exportCSV(){
     }).join(',');
   });
   const csv = '﻿'+[header, ...lines].join('\n');
-  const filename = 'tracking-body-paint-'+todayISO()+'.csv';
+  const filename = 'tracking-body-paint-'+(periodActive()?periodLabel().replace(/\s+/g,'-').toLowerCase()+'-':'')+todayISO()+'.csv';
 
   try{
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
@@ -2078,6 +2166,7 @@ document.addEventListener('click', e=>{
   if(e.target.matches('[data-action="close-part-overlay"]')){ STATE.showPart = false; render(); return; }
   const partChip = e.target.closest('[data-action="part-filter"]');
   if(partChip){ STATE.partSumber = partChip.dataset.src; render(); return; }
+  if(e.target.closest('[data-action="period-reset"]')){ STATE.periodMonth='all'; STATE.periodYear='all'; STATE.periodBasis='awal'; render(); return; }
   if(e.target.closest('[data-action="open-nopanel"]')){ STATE.showNoPanel = true; STATE.noPanelSA = 'all'; render(); return; }
   if(e.target.closest('[data-action="close-nopanel"]')){ STATE.showNoPanel = false; render(); return; }
   if(e.target.matches('[data-action="close-nopanel-overlay"]')){ STATE.showNoPanel = false; render(); return; }
@@ -2145,6 +2234,9 @@ document.addEventListener('change', e=>{
     if(pw) pw.type = STATE.showPassword ? 'text' : 'password';
     return;
   }
+  if(t.id==='periodMonth'){ STATE.periodMonth=t.value; render(); return; }
+  if(t.id==='periodYear'){ STATE.periodYear=t.value; render(); return; }
+  if(t.id==='periodBasis'){ STATE.periodBasis=t.value; render(); return; }
   if(t.id==='filterStage'){ STATE.filterStage=t.value; render(); return; }
   if(t.id==='filterCustomer'){ STATE.filterCustomer=t.value; render(); return; }
   if(t.id==='nvBrand'){
