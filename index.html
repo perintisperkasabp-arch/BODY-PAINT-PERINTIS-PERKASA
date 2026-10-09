@@ -173,6 +173,9 @@
   .progress-seg.done{background:var(--good);}
   .progress-seg.current{background:var(--accent);}
   .progress-seg.stopped{background:var(--bad);}
+  .progress-seg.skipped{background:repeating-linear-gradient(135deg,var(--surface-3) 0 3px,transparent 3px 6px);opacity:.7;}
+  .stage-card.skipped .stage-head{opacity:.6;}
+  .skip-note{background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12.5px;color:var(--ink-2);}
 
   .empty-state{padding:34px 18px;text-align:center;color:var(--ink-3);}
 
@@ -381,6 +384,19 @@ const BRANDS = Object.keys(BRAND_MODELS);
 const COLORS = ['Putih','Hitam','Silver','Abu-abu','Merah','Biru','Kuning','Hijau','Coklat','Emas/Gold','Krem','Maroon','Orange','Ungu','Dua Warna / Lainnya'];
 const TRANSMISI_LIST = ['Matic','Manual'];
 const CUSTOMER_TYPES = ['Asuransi','Cash','TWC'];
+// Jenis pekerjaan menentukan tahap produksi yang DILEWATI. Pekerjaan non-ketok/non-cat langsung
+// ke Pemasangan. Kendaraan tanpa jenis pekerjaan (data lama) = lengkap, tidak ada yang dilewati.
+const SKIP_KETOK_CAT = ['panel_repair','persiapan_dempul','colors_mixing','painting','poles'];
+const JOB_TYPES = [
+  {value:'Body & Paint Lengkap', skip:[]},
+  {value:'Ganti / Pasang Part Saja', skip:SKIP_KETOK_CAT},
+  {value:'Pasang Aksesoris / Perlengkapan', skip:SKIP_KETOK_CAT},
+];
+const JOB_TYPE_LIST = JOB_TYPES.map(function(j){ return j.value; });
+function jobSkipKeys(v){
+  const j = JOB_TYPES.find(function(x){ return x.value===v.jenis_pekerjaan; });
+  return j ? j.skip : [];
+}
 const INSURERS = ['Asuransi Astra (Garda Oto)','Adira Insurance','ACA Asuransi','Sinarmas','Tugu Insurance','MSIG Indonesia','ABDA','Asuransi Wahana Tata','AXA Insurance Indonesia','Zurich Asuransi Indonesia','Simas Insurtech','KB Insurance Indonesia','Lainnya'];
 const STATUS_LAPOR_LIST = ['Lapor dari Bengkel','TPL','TLO','Estimasi','SPE','SPK Terbit','Customer Bawa SPK','Ditolak','Batal','Claim Banding'];
 const POSISI_LIST = ['Mobil Dibawa Pelanggan','Tinggal Dibengkel'];
@@ -468,6 +484,8 @@ const STAGE_DEFS = [
       {key:'transmisi', label:'Transmisi', type:'select', role:'sa', options:TRANSMISI_LIST},
       {key:'tahun', label:'Tahun Kendaraan', type:'number', role:'sa', min:1980, max:2100},
       {key:'tipe_customer', label:'Tipe Customer', type:'select', role:'sa', options:CUSTOMER_TYPES},
+      {key:'jenis_pekerjaan', label:'Jenis Pekerjaan', type:'select', role:'sa', options:JOB_TYPE_LIST,
+       hint:'Pilih "Ganti / Pasang Part Saja" atau "Pasang Aksesoris" bila TIDAK perlu Panel Repair, Dempul, Cat, dan Poles — kendaraan langsung ke tahap Pemasangan.'},
       {key:'nama_asuransi', label:'Nama Asuransi', type:'select', role:'sa', options:INSURERS, showIf:v=>v.tipe_customer==='Asuransi'},
       {key:'nama_asuransi_lainnya', label:'Nama Asuransi (Lainnya)', type:'text', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'&&v.nama_asuransi==='Lainnya', hint:'Isi nama asuransi karena dipilih "Lainnya".'},
       {key:'jumlah_panel', label:'Jumlah Panel', type:'number', role:'sa', step:0.1, min:0.1, unit:'panel'},
@@ -621,13 +639,18 @@ function computeDerived(v){
 
   const masukBasis = v.tipe_customer==='Asuransi' ? v.tanggal_masuk_asuransi : v.tanggal_masuk_cash;
   const partBasis = v.tanggal_part_arrival || masukBasis;
-  c.waiting_production = daysBetween(partBasis, v.panel_repair_mulai);
-  c.waiting_panel_repair = c.waiting_production;
-  c.waiting_persiapan_dempul = daysBetween(v.panel_repair_selesai, v.persiapan_dempul_mulai);
-  c.waiting_colors_mixing = daysBetween(v.persiapan_dempul_selesai, v.colors_mixing_mulai);
-  c.waiting_painting = daysBetween(v.colors_mixing_selesai, v.painting_mulai);
-  c.waiting_poles = daysBetween(v.painting_selesai, v.poles_mulai);
-  c.waiting_pemasangan = daysBetween(v.poles_selesai, v.pemasangan_mulai);
+  // Rantai waiting tahap produksi: basis = selesai tahap sebelumnya yang BENAR-BENAR dikerjakan
+  // (tahap yang dilewati karena jenis pekerjaan tidak dihitung). Tahap aktif pertama memakai
+  // basis Part Arrival / Masuk, dan nilainya sama dengan Waiting Production.
+  const prodChain = ['panel_repair','persiapan_dempul','colors_mixing','painting','poles','pemasangan'];
+  const skipKeys = jobSkipKeys(v);
+  let basis = partBasis, firstActive = true;
+  prodChain.forEach(function(k){
+    if(skipKeys.indexOf(k)>=0 && !v[k+'_mulai'] && !v[k+'_selesai']){ c['waiting_'+k] = null; return; }
+    c['waiting_'+k] = daysBetween(basis, v[k+'_mulai']);
+    if(firstActive){ c.waiting_production = c['waiting_'+k]; firstActive = false; }
+    basis = v[k+'_selesai'];
+  });
   c.waiting_final_inspection = daysBetween(v.pemasangan_selesai, v.final_inspection_mulai);
   c.waiting_washing = daysBetween(v.final_inspection_selesai, v.washing_mulai);
   c.waiting_penyerahan = daysBetween(v.washing_selesai, v.penyerahan_mulai);
@@ -650,9 +673,22 @@ function stageState(idx, v){
   if(stage.key==='billing' && v.status_bayar==='Lunas') finished = true;
   const next = STAGE_DEFS[idx+1];
   if(!finished && next && next.startField && v[next.startField]) finished = true;
+  // Tahap mana pun SESUDAHNYA yang sudah punya data (mulai / selesai) berarti tahap ini sudah
+  // terlewati — walau field tahap ini / tahap persis berikutnya tidak diisi (mis. tidak ada
+  // pemesanan part). Tanpa ini kendaraan "nyangkut" di tahap awal.
+  if(!finished){
+    for(let j=idx+1;j<STAGE_DEFS.length;j++){
+      const s2 = STAGE_DEFS[j];
+      if((s2.startField && v[s2.startField]) || (s2.finishField && v[s2.finishField])){ finished = true; break; }
+    }
+  }
+  // Tahap dilewati karena jenis pekerjaan (tidak perlu Panel Repair/Dempul/Cat/Poles), selama
+  // belum ada data pengerjaan di tahap itu.
+  const skipped = idx>0 && jobSkipKeys(v).indexOf(stage.key)>=0 && !(stage.startField && v[stage.startField]) && !(stage.finishField && v[stage.finishField]);
+  if(skipped) finished = true;
   const stopKey = stage.key+'_stop_at', resumeKey = stage.key+'_lanjut_at';
   const stopped = started && !finished && !!v[stopKey] && !v[resumeKey];
-  return {started, finished, stopped};
+  return {started, finished, stopped, skipped};
 }
 
 function vehicleSummary(v){
@@ -896,6 +932,7 @@ function stageLeadtimeValue(stage, v, c, kind){
   if(kind==='wait'){
     if(k==='produksi') return c.waiting_production;
     if(k==='panel_repair') return null; // sama dengan Waiting Production (sudah di baris Masuk Produksi)
+    if(k==='pemasangan' && jobSkipKeys(v).length && !v.panel_repair_mulai && !v.poles_mulai) return null; // sudah di Masuk Produksi
     if(k==='billing') return c.waiting_invoice;
     if(k==='intake' || k==='partman') return null;
     return c['waiting_'+k];
@@ -1318,7 +1355,8 @@ function renderDistribution(list){
     STAGE_DEFS.forEach((s,i)=>{
       // tahap yang punya finishField: selesai HANYA bila field itu terisi (mis. Part Arrival Aktual);
       // tahap tanpa finishField: pakai status cascade/lunas dari stageState().
-      const fin = s.finishField ? !!v[s.finishField] : stageState(i, v).finished;
+      const ss = stageState(i, v);
+      const fin = ss.skipped ? false : (s.finishField ? !!v[s.finishField] : ss.finished);
       if(fin) doneCounts[i]++;
     });
   });
@@ -1346,7 +1384,8 @@ function progressBarHTML(v){
   return `<div class="progress-track">${STAGE_DEFS.map((s,i)=>{
     const st = stageState(i, v);
     let cls='progress-seg';
-    if(st.stopped) cls+=' stopped';
+    if(st.skipped) cls+=' skipped';
+    else if(st.stopped) cls+=' stopped';
     else if(i<sum.currentIdx || sum.allDone) cls+=' done';
     else if(i===sum.currentIdx) cls+=' current';
     return `<div class="${cls}" title="${esc(s.title)}"></div>`;
@@ -1441,7 +1480,7 @@ function renderTable(list){
 function renderBackendWarning(){
   if(STATE.demoMode || !STATE.backendOutdated) return '';
   return `<div role="alert" style="background:var(--bad-soft,#fde8e8);border:1px solid var(--bad);color:var(--bad);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.5;">
-    <b>⚠ Backend Google Sheets belum diperbarui.</b> Kolom-kolom baru (mis. <i>Sumber Part</i>, ADD SPK, Reminder SPK ke-2/3, Akurasi QC) <b>tidak tersimpan</b> sehingga isiannya akan hilang lagi setelah sinkron.
+    <b>⚠ Backend Google Sheets belum diperbarui.</b> Kolom-kolom baru (mis. <i>Jenis Pekerjaan</i>, <i>Sumber Part</i>, ADD SPK, Reminder SPK ke-2/3, Akurasi QC) <b>tidak tersimpan</b> sehingga isiannya akan hilang lagi setelah sinkron.
     Perbaikan: buka Google Apps Script → tempel <code>Code.gs</code> terbaru → <b>Deploy → Manage deployments → ✎ (edit) → Version: New version → Deploy</b>.
   </div>`;
 }
@@ -1555,18 +1594,19 @@ function buildStageCard(stage, idx, v, computed, summary){
   const key = STATE.openId+':'+stage.key;
   const isOpen = STATE.openStageKeys.has(key);
   let numCls = 'stage-num';
-  if(st.finished) numCls+=' done'; else if(idx===summary.currentIdx) numCls+=' current';
+  if(st.skipped) numCls+=' skip'; else if(st.finished) numCls+=' done'; else if(idx===summary.currentIdx) numCls+=' current';
   const fieldsHTML = stage.fields.map(f=>buildFieldHTML(f, v, computed)).join('');
   return `
-  <div class="stage-card ${isOpen?'open':''}">
+  <div class="stage-card ${isOpen?'open':''} ${st.skipped?'skipped':''}">
     <button type="button" class="stage-head" data-action="toggle-stage" data-key="${key}">
       <span class="ttl">
-        <span class="${numCls}">${st.finished?'✓':(idx+1)}</span>
-        <span><h3>${esc(stage.title)}</h3><span class="role-tag">${esc(stage.roleLabel)}</span></span>
+        <span class="${numCls}">${st.skipped?'–':(st.finished?'✓':(idx+1))}</span>
+        <span><h3>${esc(stage.title)}</h3><span class="role-tag">${st.skipped?'Tidak diperlukan — '+esc(v.jenis_pekerjaan):esc(stage.roleLabel)}</span></span>
       </span>
       <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
     </button>
     <div class="stage-content">
+      ${st.skipped?`<div class="skip-note">Tahap ini <b>dilewati</b> karena jenis pekerjaan <b>${esc(v.jenis_pekerjaan)}</b>. Kendaraan langsung lanjut ke tahap berikutnya. Isi kolom di bawah hanya bila tahap ini ternyata tetap dikerjakan.</div>`:''}
       ${canSendWA()?`<div class="wa-bar"><span>Kirim update proses <b>${esc(stage.title)}</b> ke customer (khusus Service Advisor)</span><button type="button" class="btn btn-sm" data-action="wa-stage" data-id="${esc(v.id)}" data-stage="${esc(stage.key)}">Kirim via WA</button></div>`:''}
       ${buildApprovalBar(stage, v)}
       <div class="field-grid">${fieldsHTML}</div>
@@ -1585,7 +1625,7 @@ function renderDrawer(){
       <div class="drawer-head">
         <div>
           <h2>${esc(v.no_polisi||v.no_rangka||'Kendaraan baru')}${hasAddSpkPart(v)?' <span class="badge badge-medium" title="Ada pemesanan part tambahan (ADD SPK)">ADD SPK Part</span>':''}</h2>
-          <div class="veh-sub">No. Rangka: ${esc(v.no_rangka||'—')} · ${esc(v.brand||'')} ${esc(v.model||'')} · ${esc(v.warna||'')} · ${esc(v.tipe_customer||'—')} ${v.jumlah_panel!=null?'· '+esc(panelStatus(v.jumlah_panel))+' ('+esc(v.jumlah_panel)+'p)':''}</div>
+          <div class="veh-sub">No. Rangka: ${esc(v.no_rangka||'—')} · ${esc(v.brand||'')} ${esc(v.model||'')} · ${esc(v.warna||'')} · ${esc(v.tipe_customer||'—')}${v.jenis_pekerjaan?' · '+esc(v.jenis_pekerjaan):''} ${v.jumlah_panel!=null?'· '+esc(panelStatus(v.jumlah_panel))+' ('+esc(v.jumlah_panel)+'p)':''}</div>
           <div class="veh-sub" style="margin-top:4px;font-weight:700;color:${summary.anyStopped?'var(--bad)':'var(--accent)'};">Tahap saat ini: ${esc(summary.currentLabel)}${summary.anyStopped?' — Job Stoppage aktif ⏸':''}</div>
         </div>
         <div style="display:flex;gap:6px;flex:none;">
@@ -1621,6 +1661,7 @@ function renderNewModal(){
         <div class="field"><label for="nvTransmisi">Transmisi</label><select id="nvTransmisi"><option value="">— pilih —</option>${TRANSMISI_LIST.map(c=>`<option>${c}</option>`).join('')}</select></div>
         <div class="field"><label for="nvTahun">Tahun</label><input type="number" id="nvTahun" min="1980" max="2100"></div>
         <div class="field"><label for="nvTipe">Tipe Customer</label><select id="nvTipe"><option value="">— pilih —</option>${CUSTOMER_TYPES.map(c=>`<option>${c}</option>`).join('')}</select></div>
+        <div class="field wide"><label for="nvJenis">Jenis Pekerjaan</label><select id="nvJenis"><option value="">— pilih —</option>${JOB_TYPE_LIST.map(c=>`<option>${c}</option>`).join('')}</select><span class="hint">Pilih jenis non-ketok/non-cat bila langsung ke tahap Pemasangan.</span></div>
         <div class="field"><label for="nvSA">Petugas SA</label><select id="nvSA"><option value="">— pilih —</option>${SA_LIST.map(c=>`<option>${c}</option>`).join('')}</select></div>
         <div class="field wide"><label for="nvNama">Nama Pemilik</label><input type="text" id="nvNama"></div>
         <div class="field wide"><label for="nvTelp">No. Telp Pemilik</label><input type="tel" id="nvTelp" placeholder="62812xxxxxxx"><span class="hint">Otomatis dirapikan ke format 62… saat disimpan.</span></div>
@@ -1795,7 +1836,7 @@ async function loadVehicles(){
     // baru (mis. sumber_part dari Revisi v2.9/v3.6), jadi field itu tidak pernah tersimpan &
     // pilihan user "hilang lagi" setelah sinkron. listVehicles_ versi baru SELALU menyertakan
     // key tsb (null bila kosong), versi lama tidak — jadi absennya key = backend lama.
-    STATE.backendOutdated = STATE.vehicles.length>0 && !Object.prototype.hasOwnProperty.call(STATE.vehicles[0], 'sumber_part');
+    STATE.backendOutdated = STATE.vehicles.length>0 && !Object.prototype.hasOwnProperty.call(STATE.vehicles[0], 'jenis_pekerjaan');
     STATE.connError = '';
     scheduleRender();
   }catch(err){
@@ -1891,7 +1932,8 @@ function waLink(vid, stageKey){
   if(stageIdx >= 0){
     const stg = STAGE_DEFS[stageIdx], ss = stageState(stageIdx, v);
     let statusTxt;
-    if(ss.finished) statusTxt = 'Selesai';
+    if(ss.skipped) statusTxt = 'Tidak diperlukan untuk pekerjaan ini';
+    else if(ss.finished) statusTxt = 'Selesai';
     else if(ss.stopped) statusTxt = 'Tertunda sementara (job stoppage)';
     else if(stageIdx > sum.currentIdx) statusTxt = 'Belum dimulai';
     else statusTxt = ss.started ? 'Sedang dikerjakan' : 'Segera dimulai';
@@ -1954,6 +1996,7 @@ document.addEventListener('click', e=>{
       transmisi: document.getElementById('nvTransmisi').value,
       tahun: tahunEl.value ? Number(tahunEl.value) : null,
       tipe_customer: document.getElementById('nvTipe').value,
+      jenis_pekerjaan: document.getElementById('nvJenis').value,
       petugas_sa: document.getElementById('nvSA').value,
       nama_pemilik: document.getElementById('nvNama').value.trim().toUpperCase(),
       no_telp_pemilik: normalizePhone(document.getElementById('nvTelp').value),
