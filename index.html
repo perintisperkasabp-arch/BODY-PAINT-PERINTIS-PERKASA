@@ -753,7 +753,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', leadtimeOpen:true,
+  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -1086,6 +1086,61 @@ function waitingPartVehicles(list){
   return out;
 }
 
+// Kendaraan aktif yang Jumlah Panel-nya belum diisi (tidak ikut Total Panel / Light-Medium-Heavy).
+function noPanelVehicles(list){
+  return list.filter(function(v){
+    return !vehicleSummary(v).allDone && panelStatus(v.jumlah_panel)==null;
+  }).sort(function(a,b){
+    const ea = a.petugas_sa ? 0 : 1, eb = b.petugas_sa ? 0 : 1; // tanpa SA di paling bawah
+    return (ea-eb) || String(a.petugas_sa||'').localeCompare(String(b.petugas_sa||'')) || String(a.no_polisi||'').localeCompare(String(b.no_polisi||''));
+  });
+}
+
+function renderNoPanelModal(){
+  if(!STATE.showNoPanel) return '';
+  const all = noPanelVehicles(STATE.vehicles);
+  const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
+  const counts = {};
+  all.forEach(function(v){ const k = saKey(v); counts[k] = (counts[k]||0)+1; });
+  const saNames = Object.keys(counts).sort();
+  const sel = STATE.noPanelSA && counts[STATE.noPanelSA] ? STATE.noPanelSA : 'all';
+  const items = sel==='all' ? all : all.filter(function(v){ return saKey(v)===sel; });
+  const chips = ['<button type="button" class="od-chip '+(sel==='all'?'active':'')+'" data-action="nopanel-filter-sa" data-sa="all">Semua SA · '+all.length+'</button>']
+    .concat(saNames.map(function(n){
+      return '<button type="button" class="od-chip '+(sel===n?'active':'')+'" data-action="nopanel-filter-sa" data-sa="'+esc(n)+'">'+esc(n)+' · '+counts[n]+'</button>';
+    })).join('');
+  const rows = items.map(function(v, i){
+    const sum = vehicleSummary(v);
+    return `
+    <tr data-action="open-vehicle" data-id="${esc(v.id)}">
+      <td class="mono">${i+1}</td>
+      <td class="mono veh-id">${esc(v.no_polisi||'—')}<div class="veh-sub">${esc(v.nama_pemilik||'—')}</div></td>
+      <td><b>${esc(v.petugas_sa||'—')}</b></td>
+      <td>${esc(v.brand||'')} ${esc(v.model||'')}<div class="veh-sub">${esc(v.tipe_customer||'—')}${v.jenis_pekerjaan?' · '+esc(v.jenis_pekerjaan):''}</div></td>
+      <td>${esc(sum.currentLabel)}${sum.anyStopped?' ⏸':''}</td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="modal-mask" data-action="close-nopanel-overlay">
+    <div class="modal-box wide" data-stop-close>
+      <div class="od-head">
+        <div>
+          <h2>Kendaraan Belum Isi Jumlah Panel</h2>
+          <div class="sub">Kendaraan aktif tanpa Jumlah Panel, sehingga belum masuk Total Panel dan Light / Medium / Heavy. Klik baris, lalu isi Jumlah Panel di tahap Pelaporan &amp; Intake.</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="close-nopanel">✕</button>
+      </div>
+      <div class="od-chips">${chips}</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>No Polisi / Pemilik</th><th>Nama SA</th><th>Kendaraan</th><th>Tahap saat ini</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5"><div class="empty-state">Semua kendaraan aktif sudah terisi jumlah panelnya. 🎉</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderPartModal(){
   if(!STATE.showPart) return '';
   const all = waitingPartVehicles(STATE.vehicles);
@@ -1318,7 +1373,8 @@ function renderStatTiles(list){
     <div class="stat-tile">
       <div class="label">Beban Kerja Aktif</div>
       <div class="value mono" title="Jumlah panel seluruh kendaraan aktif">${totalPanelTxt}</div>
-      <div class="sub">total panel dari ${active.length-noPanel} kendaraan${noPanel?` (${noPanel} belum isi jumlah panel)`:''}</div>
+      <div class="sub">total panel dari ${active.length-noPanel} kendaraan</div>
+      ${noPanel?`<div class="hint-click" role="button" tabindex="0" data-action="open-nopanel" style="cursor:pointer;text-decoration:underline;" title="Klik untuk melihat kendaraan yang belum diisi jumlah panelnya">${noPanel} belum isi jumlah panel — klik ›</div>`:''}
       <div class="value" style="font-size:15px;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
         <span class="badge badge-light">Light ${byPanel.Light}</span>
         <span class="badge badge-medium">Medium ${byPanel.Medium}</span>
@@ -1698,7 +1754,7 @@ function doRender(){
   if(!STATE.role){
     root.innerHTML = renderGate();
   } else {
-    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal() + renderPartModal();
+    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal() + renderPartModal() + renderNoPanelModal();
   }
   if(oldDrawer){ const d = root.querySelector('.drawer'); if(d) d.scrollTop = drawerTop; }
   if(oldModal){ const m = root.querySelector('.modal-box'); if(m) m.scrollTop = modalTop; }
@@ -2022,6 +2078,11 @@ document.addEventListener('click', e=>{
   if(e.target.matches('[data-action="close-part-overlay"]')){ STATE.showPart = false; render(); return; }
   const partChip = e.target.closest('[data-action="part-filter"]');
   if(partChip){ STATE.partSumber = partChip.dataset.src; render(); return; }
+  if(e.target.closest('[data-action="open-nopanel"]')){ STATE.showNoPanel = true; STATE.noPanelSA = 'all'; render(); return; }
+  if(e.target.closest('[data-action="close-nopanel"]')){ STATE.showNoPanel = false; render(); return; }
+  if(e.target.matches('[data-action="close-nopanel-overlay"]')){ STATE.showNoPanel = false; render(); return; }
+  const npChip = e.target.closest('[data-action="nopanel-filter-sa"]');
+  if(npChip){ STATE.noPanelSA = npChip.dataset.sa; render(); return; }
   if(e.target.closest('[data-action="open-stop"]')){ STATE.showStop = true; STATE.stopSA = 'all'; render(); return; }
   if(e.target.closest('[data-action="close-stop"]')){ STATE.showStop = false; render(); return; }
   if(e.target.matches('[data-action="close-stop-overlay"]')){ STATE.showStop = false; render(); return; }
@@ -2036,7 +2097,7 @@ document.addEventListener('click', e=>{
 
   const row = e.target.closest('[data-action="open-vehicle"]');
   if(row){
-    STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false; STATE.showPart = false;
+    STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false; STATE.showPart = false; STATE.showNoPanel = false;
     STATE.openId = row.dataset.id;
     STATE.openStageKeys = new Set();
     const v = STATE.vehicles.find(x=>x.id===STATE.openId);
@@ -2119,6 +2180,8 @@ document.addEventListener('input', e=>{
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && STATE.showPart){ STATE.showPart = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-part"]')){ e.preventDefault(); STATE.showPart = true; STATE.partSumber = 'all'; render(); return; }
+  if(e.key==='Escape' && STATE.showNoPanel){ STATE.showNoPanel = false; render(); return; }
+  if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-nopanel"]')){ e.preventDefault(); STATE.showNoPanel = true; STATE.noPanelSA = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showStop){ STATE.showStop = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-stop"]')){ e.preventDefault(); STATE.showStop = true; STATE.stopSA = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showInsLate){ STATE.showInsLate = false; render(); return; }
