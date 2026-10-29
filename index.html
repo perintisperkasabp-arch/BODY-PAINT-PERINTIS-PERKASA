@@ -152,6 +152,9 @@
   .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);}
   .panel-head h2{font-size:17px;}
   .panel-body{padding:14px 18px;}
+  .spk-tbl tbody tr{cursor:pointer;}
+  .spk-tbl tr.spk-sum td{font-weight:800;border-top:2px solid var(--line-strong);background:var(--surface-2);}
+  .spk-late{color:var(--bad);font-weight:700;}
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
   .period-bar{display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap;padding:12px 16px;margin-bottom:16px;}
   .period-title{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);}
@@ -815,7 +818,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', leadtimeOpen:true,
+  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', showSpkIns:null, leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all', periodMonth:'all', periodYear:'all', periodBasis:'awal',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -1114,6 +1117,153 @@ function leadtimeRows(list){
   });
   const total = avgOf(computed.map(function(x){ return x.c.total_leadtime; }));
   return {rows:rows, total:total};
+}
+
+// ===== LAPORAN LEADTIME SPK PER ASURANSI =====
+// Leadtime SPK = Tanggal Lapor Asuransi -> Tanggal Terbit SPK. Kendaraan yang SPK-nya belum terbit
+// dihitung terpisah sebagai "Menunggu SPK" (lapor -> hari ini). Mengikuti filter Periode Data.
+function medianOf(arr){
+  if(!arr.length) return null;
+  const s = arr.slice().sort(function(a,b){ return a-b; });
+  const m = Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+}
+function meanOf(arr){ return arr.length ? arr.reduce(function(a,b){ return a+b; },0)/arr.length : null; }
+function fmtDays(d){ return d==null ? '—' : (Math.round(d*10)/10).toFixed(1).replace(/\.0$/,'')+' hari'; }
+
+function spkStats(items){
+  const done = items.filter(function(x){ return x.info.done && x.info.days!=null; }).map(function(x){ return x.info.days; });
+  const waitingItems = items.filter(function(x){ return !x.info.done; });
+  const waiting = waitingItems.filter(function(x){ return x.info.days!=null; }).map(function(x){ return x.info.days; });
+  const lateDone = done.filter(function(d){ return d > BATAS_LEADTIME_LAPOR_HARI; }).length;
+  return {
+    total: items.length,
+    doneN: done.length,
+    avg: meanOf(done), median: medianOf(done), max: done.length ? Math.max.apply(null, done) : null,
+    lateN: lateDone, latePct: done.length ? Math.round(lateDone/done.length*100) : null,
+    waitN: waitingItems.length, waitAvg: meanOf(waiting),
+    waitLate: waiting.filter(function(d){ return d > BATAS_LEADTIME_LAPOR_HARI; }).length,
+  };
+}
+
+function spkReportData(list){
+  const groups = {};
+  list.forEach(function(v){
+    if(v.tipe_customer!=='Asuransi' || !v.tanggal_lapor_asuransi) return;
+    const info = asuransiLaporInfo(v);
+    const name = info.nama || '(Asuransi belum dipilih)';
+    (groups[name] = groups[name] || {name:name, items:[]}).items.push({v:v, info:info});
+  });
+  const rows = Object.keys(groups).map(function(k){
+    const g = groups[k]; g.stats = spkStats(g.items); return g;
+  });
+  // Paling lama di atas; yang belum punya SPK terbit di bawah, urut jumlah kendaraan.
+  rows.sort(function(a,b){
+    const x = a.stats.avg, y = b.stats.avg;
+    if(x==null && y==null) return b.stats.total - a.stats.total || a.name.localeCompare(b.name);
+    if(x==null) return 1; if(y==null) return -1;
+    return y - x || a.name.localeCompare(b.name);
+  });
+  const all = [];
+  rows.forEach(function(g){ g.items.forEach(function(it){ all.push(it); }); });
+  return {rows:rows, total:{name:'Semua Asuransi', items:all, stats:spkStats(all)}};
+}
+
+function spkRowCells(g){
+  const s = g.stats;
+  const red = function(txt, bad){ return bad ? '<span class="spk-late">'+txt+'</span>' : txt; };
+  return '<td class="mono">'+s.total+'</td>'+
+    '<td class="mono">'+s.doneN+'</td>'+
+    '<td class="mono">'+red(fmtDays(s.avg), s.avg!=null && s.avg>BATAS_LEADTIME_LAPOR_HARI)+'</td>'+
+    '<td class="mono">'+red(fmtDays(s.median), s.median!=null && s.median>BATAS_LEADTIME_LAPOR_HARI)+'</td>'+
+    '<td class="mono">'+red(fmtDays(s.max), s.max!=null && s.max>BATAS_LEADTIME_LAPOR_HARI)+'</td>'+
+    '<td class="mono">'+(s.latePct==null ? '—' : red(s.lateN+' ('+s.latePct+'%)', s.lateN>0))+'</td>'+
+    '<td class="mono">'+s.waitN+'</td>'+
+    '<td class="mono">'+red(fmtDays(s.waitAvg), s.waitAvg!=null && s.waitAvg>BATAS_LEADTIME_LAPOR_HARI)+'</td>';
+}
+
+function renderSpkReport(list){
+  const data = spkReportData(list);
+  const body = data.rows.map(function(g){
+    return '<tr data-action="open-spk-ins" data-name="'+esc(g.name)+'" tabindex="0" title="Klik untuk melihat daftar kendaraan '+esc(g.name)+'">'+
+      '<td><b>'+esc(g.name)+'</b></td>'+spkRowCells(g)+'</tr>';
+  }).join('');
+  const t = data.total;
+  const totalRow = data.rows.length
+    ? '<tr class="spk-sum" data-action="open-spk-ins" data-name="__all" tabindex="0" title="Klik untuk melihat semua kendaraan"><td><b>Semua Asuransi</b></td>'+spkRowCells(t)+'</tr>' : '';
+  return `
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="panel-head">
+      <h2>Laporan Leadtime SPK per Asuransi</h2>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="sub" style="font-size:11.5px;color:var(--ink-3);">Lapor asuransi → SPK terbit${periodActive()?' · periode '+esc(periodLabel()):''} · merah = lebih dari ${BATAS_LEADTIME_LAPOR_HARI} hari</span>
+        <button type="button" class="btn btn-sm" data-action="export-spk-csv" ${data.rows.length?'':'disabled'}>Unduh CSV</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="spk-tbl">
+        <thead><tr><th>Asuransi</th><th>Kendaraan</th><th>SPK Terbit</th><th>Rata-rata</th><th>Median</th><th>Terlama</th><th>&gt; ${BATAS_LEADTIME_LAPOR_HARI} Hari</th><th>Menunggu SPK</th><th>Rata-rata Tunggu</th></tr></thead>
+        <tbody>${body || '<tr><td colspan="9"><div class="empty-state">Belum ada kendaraan asuransi dengan Tanggal Lapor Asuransi pada periode ini.</div></td></tr>'}${totalRow}</tbody>
+      </table>
+    </div>
+    <div class="panel-body" style="padding-top:8px;font-size:11.5px;color:var(--ink-3);">Kendaraan = jumlah yang sudah punya Tanggal Lapor Asuransi. Rata-rata/Median/Terlama dihitung dari SPK yang sudah terbit. Menunggu SPK = belum terbit (dihitung sampai hari ini). Klik baris untuk melihat daftar kendaraannya.</div>
+  </div>`;
+}
+
+function renderSpkModal(){
+  if(STATE.showSpkIns==null) return '';
+  const data = spkReportData(periodVehicles());
+  const isAll = STATE.showSpkIns==='__all';
+  const g = isAll ? data.total : data.rows.find(function(r){ return r.name===STATE.showSpkIns; });
+  const items = g ? g.items.slice().sort(function(a,b){ return (b.info.days==null?-1:b.info.days) - (a.info.days==null?-1:a.info.days); }) : [];
+  const s = g ? g.stats : spkStats([]);
+  const rows = items.map(function(it, i){
+    const v = it.v, info = it.info;
+    return `
+    <tr data-action="open-vehicle" data-id="${esc(v.id)}">
+      <td class="mono">${i+1}</td>
+      <td class="mono veh-id">${esc(v.no_polisi||'—')}<div class="veh-sub">${esc(v.nama_pemilik||'—')}</div></td>
+      <td>${isAll ? '<b>'+esc(info.nama||'(belum dipilih)')+'</b><div class="veh-sub">SA: '+esc(v.petugas_sa||'—')+'</div>' : '<b>'+esc(v.petugas_sa||'—')+'</b>'}</td>
+      <td>${esc(fmtDate(v.tanggal_lapor_asuransi))}</td>
+      <td>${v.tanggal_terbit_spk ? esc(fmtDate(v.tanggal_terbit_spk)) : '<span class="veh-sub">belum terbit</span>'}</td>
+      <td><span class="badge ${info.late?'badge-heavy':'badge-light'}">${info.days==null?'—':fmtDays(info.days)}</span><div class="veh-sub" style="font-weight:${info.done?'500':'700'};color:${info.done?'var(--ink-3)':'var(--bad)'};">${info.done?'SPK sudah terbit':'Menunggu SPK'}</div></td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="modal-mask" data-action="close-spk-overlay">
+    <div class="modal-box wide" data-stop-close>
+      <div class="od-head">
+        <div>
+          <h2>Leadtime SPK — ${esc(isAll ? 'Semua Asuransi' : STATE.showSpkIns)}</h2>
+          <div class="sub">${s.total} kendaraan · ${s.doneN} SPK terbit · rata-rata ${esc(fmtDays(s.avg))} · menunggu ${s.waitN}. Urut dari yang paling lama. Klik baris untuk membuka detail.</div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="close-spk">✕</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>No Polisi / Pemilik</th><th>${isAll?'Asuransi / SA':'Nama SA'}</th><th>Tgl Lapor</th><th>Tgl SPK Terbit</th><th>Leadtime</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6"><div class="empty-state">Tidak ada data.</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function spkReportCSV(list){
+  const data = spkReportData(list);
+  const head = ['Asuransi','Jumlah Kendaraan','SPK Terbit','Rata-rata Leadtime SPK (hari)','Median (hari)','Terlama (hari)','SPK Terbit > '+BATAS_LEADTIME_LAPOR_HARI+' Hari','% > '+BATAS_LEADTIME_LAPOR_HARI+' Hari','Menunggu SPK','Rata-rata Tunggu (hari)'];
+  const num = function(x){ return x==null ? '' : Math.round(x*10)/10; };
+  const line = function(g){
+    const s = g.stats;
+    return [g.name, s.total, s.doneN, num(s.avg), num(s.median), num(s.max), s.lateN, s.latePct==null?'':s.latePct, s.waitN, num(s.waitAvg)].map(csvEscape).join(',');
+  };
+  const lines = data.rows.map(line); if(data.rows.length) lines.push(line(data.total));
+  return '﻿'+[head.map(csvEscape).join(',')].concat(lines).join('\n');
+}
+function exportSpkCSV(){
+  const csv = spkReportCSV(periodVehicles());
+  const filename = 'laporan-leadtime-spk-asuransi-'+(periodActive()?periodLabel().replace(/\s+/g,'-').toLowerCase()+'-':'')+todayISO()+'.csv';
+  saveCsvFile(filename, csv);
 }
 
 function renderLeadtime(list){
@@ -1699,6 +1849,7 @@ function renderShell(){
     ${renderStatTiles(periodVehicles())}
     ${renderDistribution(periodVehicles())}
     ${renderLeadtime(periodVehicles())}
+    ${renderSpkReport(periodVehicles())}
     ${renderTable(list)}
     <p class="footer-note">${STATE.demoMode
       ? 'Mode pratinjau — data contoh, tidak tersimpan permanen. Lihat panduan setup Google Sheets untuk mengaktifkan penyimpanan sungguhan.'
@@ -1959,7 +2110,7 @@ function doRender(){
   if(!STATE.role){
     root.innerHTML = renderGate();
   } else {
-    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal() + renderPartModal() + renderNoPanelModal();
+    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal() + renderPartModal() + renderNoPanelModal() + renderSpkModal();
   }
   if(oldDrawer){ const d = root.querySelector('.drawer'); if(d) d.scrollTop = drawerTop; }
   if(oldModal){ const m = root.querySelector('.modal-box'); if(m) m.scrollTop = modalTop; }
@@ -2159,6 +2310,20 @@ async function bootApp(){
 /* =========================================================================
    EXPORT CSV
    ========================================================================= */
+function saveCsvFile(filename, csv){
+  try{
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    toast('File CSV berhasil diunduh.');
+  }catch(err){
+    toast('Gagal membuat file CSV: '+(err&&err.message||'tidak diketahui'));
+  }
+}
+
 function csvEscape(s){
   const str = String(s==null?'':s);
   if(/[",\n]/.test(str)) return '"'+str.replace(/"/g,'""')+'"';
@@ -2298,6 +2463,11 @@ document.addEventListener('click', e=>{
   const partChip = e.target.closest('[data-action="part-filter"]');
   if(partChip){ STATE.partSumber = partChip.dataset.src; render(); return; }
   if(e.target.closest('[data-action="period-reset"]')){ STATE.periodMonth='all'; STATE.periodYear='all'; STATE.periodBasis='awal'; render(); return; }
+  const spkRow = e.target.closest('[data-action="open-spk-ins"]');
+  if(spkRow){ STATE.showSpkIns = spkRow.dataset.name; render(); return; }
+  if(e.target.closest('[data-action="close-spk"]')){ STATE.showSpkIns = null; render(); return; }
+  if(e.target.matches('[data-action="close-spk-overlay"]')){ STATE.showSpkIns = null; render(); return; }
+  if(e.target.closest('[data-action="export-spk-csv"]')){ exportSpkCSV(); return; }
   if(e.target.closest('[data-action="open-nopanel"]')){ STATE.showNoPanel = true; STATE.noPanelSA = 'all'; render(); return; }
   if(e.target.closest('[data-action="close-nopanel"]')){ STATE.showNoPanel = false; render(); return; }
   if(e.target.matches('[data-action="close-nopanel-overlay"]')){ STATE.showNoPanel = false; render(); return; }
@@ -2317,7 +2487,7 @@ document.addEventListener('click', e=>{
 
   const row = e.target.closest('[data-action="open-vehicle"]');
   if(row){
-    STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false; STATE.showPart = false; STATE.showNoPanel = false;
+    STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false; STATE.showPart = false; STATE.showNoPanel = false; STATE.showSpkIns = null;
     STATE.openId = row.dataset.id;
     STATE.openStageKeys = new Set();
     const v = STATE.vehicles.find(x=>x.id===STATE.openId);
@@ -2426,6 +2596,8 @@ document.addEventListener('input', e=>{
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && STATE.showPart){ STATE.showPart = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-part"]')){ e.preventDefault(); STATE.showPart = true; STATE.partSumber = 'all'; render(); return; }
+  if(e.key==='Escape' && STATE.showSpkIns!=null){ STATE.showSpkIns = null; render(); return; }
+  if(e.key==='Enter' && e.target.closest && e.target.closest('tr[data-action="open-spk-ins"]')){ e.preventDefault(); STATE.showSpkIns = e.target.closest('tr[data-action="open-spk-ins"]').dataset.name; render(); return; }
   if(e.key==='Escape' && STATE.showNoPanel){ STATE.showNoPanel = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-nopanel"]')){ e.preventDefault(); STATE.showNoPanel = true; STATE.noPanelSA = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showStop){ STATE.showStop = false; render(); return; }
