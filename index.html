@@ -422,6 +422,7 @@ const CUSTOMER_TYPES = ['Asuransi','Cash','TWC'];
 const SKIP_KETOK_CAT = ['panel_repair','persiapan_dempul','colors_mixing','painting','poles'];
 const JOB_TYPES = [
   {value:'Body & Paint Lengkap', skip:[]},
+  {value:'Body & Paint Lengkap Tanpa Pesan Sparepart', skip:['partman']},
   {value:'Ganti / Pasang Part Saja', skip:SKIP_KETOK_CAT},
   {value:'Pasang Aksesoris / Perlengkapan', skip:SKIP_KETOK_CAT},
 ];
@@ -518,7 +519,7 @@ const STAGE_DEFS = [
       {key:'tahun', label:'Tahun Kendaraan', type:'number', role:'sa', min:1980, max:2100},
       {key:'tipe_customer', label:'Tipe Customer', type:'select', role:'sa', options:CUSTOMER_TYPES},
       {key:'jenis_pekerjaan', label:'Jenis Pekerjaan', type:'select', role:'sa', options:JOB_TYPE_LIST,
-       hint:'Pilih "Ganti / Pasang Part Saja" atau "Pasang Aksesoris" bila TIDAK perlu Panel Repair, Dempul, Cat, dan Poles — kendaraan langsung ke tahap Pemasangan.'},
+       hint:'Pilih "Ganti / Pasang Part Saja" atau "Pasang Aksesoris" bila TIDAK perlu Panel Repair, Dempul, Cat, dan Poles — kendaraan langsung ke tahap Pemasangan. Pilih "Body & Paint Lengkap Tanpa Pesan Sparepart" bila tidak ada pemesanan part — tahap Pengadaan Part dilewati.'},
       {key:'nama_asuransi', label:'Nama Asuransi', type:'select', role:'sa', options:INSURERS, showIf:v=>v.tipe_customer==='Asuransi'},
       {key:'nama_asuransi_lainnya', label:'Nama Asuransi (Lainnya)', type:'text', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'&&v.nama_asuransi==='Lainnya', hint:'Isi nama asuransi karena dipilih "Lainnya".'},
       {key:'jumlah_panel', label:'Jumlah Panel', type:'number', role:'sa', step:0.1, min:0.1, unit:'panel'},
@@ -753,6 +754,9 @@ function stageState(idx, v){
   }
   // Tahap dilewati karena jenis pekerjaan (tidak perlu Panel Repair/Dempul/Cat/Poles), selama
   // belum ada data pengerjaan di tahap itu.
+  // Tanpa pesan sparepart: tahap Pengadaan Part dilewati, jadi Intake dianggap selesai begitu
+  // tanggal masuk bengkel / PKB tercatat (kendaraan lanjut ke Masuk Produksi).
+  if(!finished && stage.key==='intake' && jobSkipKeys(v).indexOf('partman')>=0 && (v.tanggal_masuk_cash || v.tanggal_masuk_asuransi)) finished = true;
   const skipped = idx>0 && jobSkipKeys(v).indexOf(stage.key)>=0 && !(stage.startField && v[stage.startField]) && !(stage.finishField && v[stage.finishField]);
   if(skipped) finished = true;
   const stopKey = stage.key+'_stop_at', resumeKey = stage.key+'_lanjut_at';
@@ -1106,7 +1110,7 @@ function stageLeadtimeValue(stage, v, c, kind){
   if(kind==='wait'){
     if(k==='produksi') return c.waiting_production;
     if(k==='panel_repair') return null; // sama dengan Waiting Production (sudah di baris Masuk Produksi)
-    if(k==='pemasangan' && jobSkipKeys(v).length && !v.panel_repair_mulai && !v.poles_mulai) return null; // sudah di Masuk Produksi
+    if(k==='pemasangan' && jobSkipKeys(v).indexOf('panel_repair')>=0 && !v.panel_repair_mulai && !v.poles_mulai) return null; // sudah di Masuk Produksi
     if(k==='billing') return c.waiting_invoice;
     if(k==='intake' || k==='partman') return null;
     return c['waiting_'+k];
@@ -2120,7 +2124,7 @@ function renderNewModal(){
         <div class="field"><label for="nvTransmisi">Transmisi</label><select id="nvTransmisi"><option value="">— pilih —</option>${TRANSMISI_LIST.map(c=>`<option>${c}</option>`).join('')}</select></div>
         <div class="field"><label for="nvTahun">Tahun</label><input type="number" id="nvTahun" min="1980" max="2100"></div>
         <div class="field"><label for="nvTipe">Tipe Customer</label><select id="nvTipe"><option value="">— pilih —</option>${CUSTOMER_TYPES.map(c=>`<option>${c}</option>`).join('')}</select></div>
-        <div class="field wide"><label for="nvJenis">Jenis Pekerjaan</label><select id="nvJenis"><option value="">— pilih —</option>${JOB_TYPE_LIST.map(c=>`<option>${c}</option>`).join('')}</select><span class="hint">Pilih jenis non-ketok/non-cat bila langsung ke tahap Pemasangan.</span></div>
+        <div class="field wide"><label for="nvJenis">Jenis Pekerjaan</label><select id="nvJenis"><option value="">— pilih —</option>${JOB_TYPE_LIST.map(c=>`<option>${c}</option>`).join('')}</select><span class="hint">Pilih jenis non-ketok/non-cat bila langsung ke Pemasangan, atau \"Tanpa Pesan Sparepart\" bila tidak ada pemesanan part.</span></div>
         <div class="field"><label for="nvSA">Petugas SA</label><select id="nvSA"><option value="">— pilih —</option>${SA_LIST.map(c=>`<option>${c}</option>`).join('')}</select></div>
         <div class="field wide"><label for="nvNama">Nama Pemilik</label><input type="text" id="nvNama"></div>
         <div class="field wide"><label for="nvTelp">No. Telp Pemilik</label><input type="tel" id="nvTelp" placeholder="62812xxxxxxx"><span class="hint">Otomatis dirapikan ke format 62… saat disimpan.</span></div>
