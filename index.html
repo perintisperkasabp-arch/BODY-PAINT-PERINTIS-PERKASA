@@ -767,7 +767,13 @@ function stageFilled(idx, v){
   const stage = STAGE_DEFS[idx];
   if(idx===0) return true;
   if(stage.key==='billing') return v.status_bayar==='Lunas' || !!v.billing_mulai;
-  if(stage.finishField) return !!v[stage.finishField];
+  if(stage.finishField){
+    if(!v[stage.finishField]) return false;
+    // Pos ber-checklist QC: hijau hanya bila checklist LENGKAP (semua item terisi, tanpa Not OK,
+    // Improve ada tanggal/jam). Data lama yang sudah "selesai" tapi checklist-nya kosong = merah.
+    if(stage.checklist && !checklistGate(stage, v).ok) return false;
+    return true;
+  }
   return !!(stage.startField && v[stage.startField]);
 }
 function stageMissed(idx, v){
