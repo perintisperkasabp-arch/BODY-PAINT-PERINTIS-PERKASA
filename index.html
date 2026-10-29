@@ -183,6 +183,7 @@
   .progress-seg.done{background:var(--good);}
   .progress-seg.current{background:var(--accent);}
   .progress-seg.stopped{background:var(--bad);}
+  .progress-seg.missed{background:var(--bad);}
   .progress-seg.skipped{background:repeating-linear-gradient(135deg,var(--surface-3) 0 3px,transparent 3px 6px);opacity:.7;}
   .stage-card.skipped .stage-head{opacity:.6;}
   .skip-note{background:var(--surface-2);border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12.5px;color:var(--ink-2);}
@@ -218,6 +219,8 @@
   }
   .stage-num.done{background:var(--good);color:#fff;}
   .stage-num.current{background:var(--accent);color:var(--accent-ink);}
+  .stage-num.missed{background:var(--bad);color:#fff;}
+  .stage-head .role-tag.missed{color:var(--bad-ink);}
   .stage-head h3{font-size:15px;}
   .stage-head .role-tag{font-size:10.5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
   .chev{transition:transform .15s;color:var(--ink-3);flex:none;}
@@ -755,6 +758,21 @@ function stageState(idx, v){
   const stopKey = stage.key+'_stop_at', resumeKey = stage.key+'_lanjut_at';
   const stopped = started && !finished && !!v[stopKey] && !v[resumeKey];
   return {started, finished, stopped, skipped};
+}
+
+// Tahap dianggap BENAR-BENAR terisi hanya bila datanya sendiri ada (tanggal selesai / mulai /
+// lunas). Tahap yang hanya "dianggap lewat" karena tahap sesudahnya sudah berjalan, tapi
+// datanya sendiri kosong, ditandai MERAH (belum diisi / terlewati) — bukan hijau.
+function stageFilled(idx, v){
+  const stage = STAGE_DEFS[idx];
+  if(idx===0) return true;
+  if(stage.key==='billing') return v.status_bayar==='Lunas' || !!v.billing_mulai;
+  if(stage.finishField) return !!v[stage.finishField];
+  return !!(stage.startField && v[stage.startField]);
+}
+function stageMissed(idx, v){
+  const st = stageState(idx, v);
+  return st.finished && !st.skipped && !stageFilled(idx, v);
 }
 
 function vehicleSummary(v){
@@ -1748,9 +1766,9 @@ function progressBarHTML(v){
     let cls='progress-seg';
     if(st.skipped) cls+=' skipped';
     else if(st.stopped) cls+=' stopped';
-    else if(i<sum.currentIdx || sum.allDone) cls+=' done';
+    else if(i<sum.currentIdx || sum.allDone) cls+= stageMissed(i, v) ? ' missed' : ' done';
     else if(i===sum.currentIdx) cls+=' current';
-    return `<div class="${cls}" title="${esc(s.title)}"></div>`;
+    return `<div class="${cls}" title="${esc(s.title)}${cls.indexOf('missed')>=0?' — belum diisi / terlewati':''}"></div>`;
   }).join('')}</div>`;
 }
 
@@ -2027,14 +2045,15 @@ function buildStageCard(stage, idx, v, computed, summary){
   const key = STATE.openId+':'+stage.key;
   const isOpen = STATE.openStageKeys.has(key);
   let numCls = 'stage-num';
-  if(st.skipped) numCls+=' skip'; else if(st.finished) numCls+=' done'; else if(idx===summary.currentIdx) numCls+=' current';
+  const missed = stageMissed(idx, v);
+  if(st.skipped) numCls+=' skip'; else if(missed) numCls+=' missed'; else if(st.finished) numCls+=' done'; else if(idx===summary.currentIdx) numCls+=' current';
   const fieldsHTML = stage.fields.map(f=>buildFieldHTML(f, v, computed)).join('');
   return `
   <div class="stage-card ${isOpen?'open':''} ${st.skipped?'skipped':''}">
     <button type="button" class="stage-head" data-action="toggle-stage" data-key="${key}">
       <span class="ttl">
-        <span class="${numCls}">${st.skipped?'–':(st.finished?'✓':(idx+1))}</span>
-        <span><h3>${esc(stage.title)}</h3><span class="role-tag">${st.skipped?'Tidak diperlukan — '+esc(v.jenis_pekerjaan):esc(stage.roleLabel)}</span></span>
+        <span class="${numCls}">${st.skipped?'–':(missed?'!':(st.finished?'✓':(idx+1)))}</span>
+        <span><h3>${esc(stage.title)}</h3><span class="role-tag ${missed?'missed':''}">${st.skipped?'Tidak diperlukan — '+esc(v.jenis_pekerjaan):(missed?esc(stage.roleLabel)+' · BELUM DIISI / TERLEWATI':esc(stage.roleLabel))}</span></span>
       </span>
       <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
     </button>
