@@ -220,6 +220,26 @@
   .stage-card.open .chev{transform:rotate(180deg);}
   .stage-content{display:none;padding:4px 16px 16px;border-top:1px solid var(--line);}
   .stage-card.open .stage-content{display:block;}
+  /* ---------- Checklist QC per POS ---------- */
+  .cl-box{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden;background:var(--surface);}
+  .cl-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);font-size:13px;}
+  .cl-count{font-size:11.5px;color:var(--ink-3);margin-top:1px;}
+  .cl-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:7px 12px;border-bottom:1px solid var(--line);}
+  .cl-sub{flex-basis:100%;display:flex;align-items:center;gap:8px;padding-left:32px;font-size:11.5px;color:var(--warn-ink);font-weight:700;}
+  .cl-sub input{width:auto;min-width:200px;padding:5px 8px;font-size:12.5px;}
+  .cl-row:last-child{border-bottom:none;}
+  .cl-row.is-notok{background:var(--bad-soft);}
+  .cl-row.is-improve{background:var(--warn-soft);}
+  .cl-n{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-3);width:22px;flex:none;text-align:right;}
+  .cl-label{flex:1;font-size:13px;min-width:0;}
+  .cl-opts{display:flex;gap:4px;flex:none;}
+  .cl-opt{appearance:none;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);border-radius:7px;padding:4px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;min-width:62px;}
+  .cl-opt:hover:not([disabled]){background:var(--surface-2);}
+  .cl-opt[disabled]{opacity:.5;cursor:not-allowed;}
+  .cl-opt.cl-ok.on{background:var(--good);border-color:var(--good);color:#fff;}
+  .cl-opt.cl-notok.on{background:var(--bad);border-color:var(--bad);color:#fff;}
+  .cl-opt.cl-improve.on{background:var(--warn);border-color:var(--warn);color:#fff;}
+  @media (max-width:520px){.cl-row{flex-wrap:wrap;} .cl-label{flex-basis:calc(100% - 40px);} .cl-opts{margin-left:32px;}}
   .qc-approve-bar{
     display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
     background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:10px;
@@ -536,7 +556,17 @@ const STAGE_DEFS = [
   qcStage('colors_mixing','Colors Mixing','Waiting Colors Mixing',HASIL_QC_WARNA,true,'QC Painting'),
   qcStage('painting','Painting','Waiting Painting',HASIL_QC_STD,true,'QC Poles'),
   qcStage('poles','Poles','Waiting Poles',HASIL_QC_STD,true,'QC Pemasangan'),
-  qcStage('pemasangan','Pemasangan','Waiting Pemasangan',HASIL_QC_STD,true,'QC Final Inspection'),
+  qcStage('pemasangan','Pemasangan','Waiting Pemasangan',HASIL_QC_STD,true,'Washing'),
+  { key:'washing', title:'Washing', roleLabel:'Washing', startField:'washing_mulai', finishField:'washing_selesai',
+    fields:[
+      {key:'waiting_washing', label:'Waiting Washing', type:'computed', unit:'hari'},
+      {key:'washing_mulai', label:'Tanggal & Jam Mulai Washing', type:'datetime', role:'washing'},
+      {key:'washing_petugas', label:'Nama Petugas Washing', type:'text', role:'washing'},
+      {key:'washing_interior', label:'Hasil Washing — Interior', type:'select', role:'washing', options:BERSIH_LIST},
+      {key:'washing_eksterior', label:'Hasil Washing — Eksterior', type:'select', role:'washing', options:BERSIH_LIST},
+      {key:'washing_kesimpulan', label:'Kesimpulan & Approval QC', type:'textarea', role:'washing'},
+      {key:'washing_selesai', label:'Tanggal & Jam Selesai Washing', type:'datetime', role:'washing'},
+    ]},
   { key:'final_inspection', title:'Final Inspection', roleLabel:'QC Final Inspection', startField:'final_inspection_mulai', finishField:'final_inspection_selesai',
     approval:{ qcField:'final_inspection_qc', hasilField:'final_inspection_hasil', hasilOk:HASIL_QC_STD[0],
       kesimpulanField:'final_inspection_kesimpulan', selesaiField:'final_inspection_selesai', serahField:'final_inspection_serah' },
@@ -551,16 +581,6 @@ const STAGE_DEFS = [
       {key:'final_status_lainnya', label:'Keterangan Status Lainnya', type:'text', role:'qc', showIf:v=>v.final_status_kendaraan==='Lainnya'},
       {key:'final_inspection_selesai', label:'Tanggal & Jam Selesai Final Inspection', type:'datetime', role:'qc'},
       {key:'final_inspection_serah', label:'Serah Terima ke SA', type:'checkbox', role:'qc'},
-    ]},
-  { key:'washing', title:'Washing', roleLabel:'Washing', startField:'washing_mulai', finishField:'washing_selesai',
-    fields:[
-      {key:'waiting_washing', label:'Waiting Washing', type:'computed', unit:'hari'},
-      {key:'washing_mulai', label:'Tanggal & Jam Mulai Washing', type:'datetime', role:'washing'},
-      {key:'washing_petugas', label:'Nama Petugas Washing', type:'text', role:'washing'},
-      {key:'washing_interior', label:'Hasil Washing — Interior', type:'select', role:'washing', options:BERSIH_LIST},
-      {key:'washing_eksterior', label:'Hasil Washing — Eksterior', type:'select', role:'washing', options:BERSIH_LIST},
-      {key:'washing_kesimpulan', label:'Kesimpulan & Approval QC', type:'textarea', role:'washing'},
-      {key:'washing_selesai', label:'Tanggal & Jam Selesai Washing', type:'datetime', role:'washing'},
     ]},
   { key:'penyerahan', title:'Penyerahan Kendaraan', roleLabel:'Service Advisor', startField:'penyerahan_mulai', finishField:'penyerahan_selesai',
     fields:[
@@ -582,7 +602,42 @@ const STAGE_DEFS = [
     ]},
 ];
 
-const ALL_FIELDS = STAGE_DEFS.reduce(function(acc,s){ return acc.concat(s.fields); }, []);
+/* ---- CHECKLIST QC per POS (Panel Repair, Persiapan & Dempul, Painting, Poles, Pemasangan, Final Inspection) ----
+   Setiap item dinilai OK / Not OK / Improve. Disimpan sebagai field flat <tahap>_cl_<nn> (nn = nomor item
+   2 digit). Approval QC WAJIB menunggu semua item terisi; hasil yang ada di CHECK_BLOCK mengunci approval.
+   Urutan & jumlah item harus sama dengan blok checklist di Code.gs (append-only). */
+const CHECK_RESULTS = ['OK','Not OK','Improve'];
+const CHECK_BLOCK = ['Not OK'];
+const CHECKLISTS = {
+  panel_repair: ["Bentuk Panel", "Kerataan Panel", "Kerapihan Pengelasan", "Dimensi", "Gap / Celah Setelan", "Anti Karat", "Undercoat", "Feather Edging", "Kerapihan Panel", "Kebersihan", "Pastikan semua permintaan telah dikerjakan (Cek SPK)", "Kelengkapan Berkas"],
+  persiapan_dempul: ["Penyok Terlewatkan", "Pori-Pori / Pin Hole", "Bentuk Panel (Gelombang)", "Sanding Mark", "Baret (Scratch)", "Over Spray Surfacer", "Kerapihan Panel", "Kerapihan Sealer", "Kebersihan", "Pastikan semua permintaan telah dikerjakan (Cek SPK)", "Kelengkapan Berkas"],
+  painting: ["Test Spray Warna Sebelum Dicat", "Kesesuaian Warna", "Leleh (Melting)", "Bintik (Seed)", "Mata Ikan (Fish Eye)", "Ngisap (Absorb)", "Blorok (Malting)", "Berpulau (Putty Mark)", "Bolong (Pin Hole)", "Texture", "Tipis", "Keriting", "Blister", "Kebersihan", "Pastikan semua permintaan telah dikerjakan (Cek SPK)", "Kelengkapan Berkas"],
+  poles: ["Berkabut", "Leleh (Melting)", "Bintik (Seed)", "Bolong (Pin Hole)", "Over Spray", "Kurang Poles", "Tekstur", "Tipis (Tembus)", "Blister", "Kebersihan", "Pastikan semua permintaan telah dikerjakan (Cek SPK)", "Kelengkapan Berkas"],
+  pemasangan: ["Renggang", "Gap / Celah (Setelan)", "Cek Fungsi Kelistrikan Eksterior", "Cek Fungsi Kelistrikan Interior", "Kerapihan Pemasangan", "Kebersihan", "Pastikan semua permintaan telah dikerjakan (Cek SPK)", "Kelengkapan Berkas"],
+  final_inspection: ["Cek Fungsi Kerja Power Window All", "Cek Kerja Wiper & Washer Depan dan Belakang", "Cek Fungsi AC & Audio", "Cek Lampu-Lampu Interior dan Eksterior", "Cek / Momen Baut Roda All", "Cek Kebersihan Interior & Eksterior", "Pastikan semua permintaan telah dikerjakan (Cek SPK)", "Kelengkapan Berkas"]
+};
+STAGE_DEFS.forEach(function(s){
+  const items = CHECKLISTS[s.key];
+  if(!items) return;
+  s.checklist = items.map(function(label, i){
+    const n = i+1;
+    return {n:n, key:s.key+'_cl_'+(n<10?'0':'')+n, label:label};
+  });
+});
+const CHECKLIST_FIELDS = [];
+STAGE_DEFS.forEach(function(s){
+  (s.checklist||[]).forEach(function(it){
+    CHECKLIST_FIELDS.push({key:it.key, label:'Checklist QC '+s.title+' — '+it.n+'. '+it.label, type:'select', role:'qc', options:CHECK_RESULTS});
+  });
+});
+// Tanggal & jam saat item ditandai Improve (diisi otomatis, boleh diubah QC) — field <item>_at.
+STAGE_DEFS.forEach(function(s){
+  (s.checklist||[]).forEach(function(it){
+    it.atKey = it.key+'_at';
+    CHECKLIST_FIELDS.push({key:it.atKey, label:'Checklist QC '+s.title+' — '+it.n+'. '+it.label+' (Tanggal & Jam Improve)', type:'datetime', role:'qc'});
+  });
+});
+const ALL_FIELDS = STAGE_DEFS.reduce(function(acc,s){ return acc.concat(s.fields); }, []).concat(CHECKLIST_FIELDS);
 
 /* =========================================================================
    UTIL TANGGAL & FORMAT
@@ -657,9 +712,10 @@ function computeDerived(v){
     if(firstActive){ c.waiting_production = c['waiting_'+k]; firstActive = false; }
     basis = v[k+'_selesai'];
   });
-  c.waiting_final_inspection = daysBetween(v.pemasangan_selesai, v.final_inspection_mulai);
-  c.waiting_washing = daysBetween(v.final_inspection_selesai, v.washing_mulai);
-  c.waiting_penyerahan = daysBetween(v.washing_selesai, v.penyerahan_mulai);
+  // Urutan tahap: ... Pemasangan -> Washing -> Final Inspection -> Penyerahan -> Billing
+  c.waiting_washing = daysBetween(v.pemasangan_selesai, v.washing_mulai);
+  c.waiting_final_inspection = daysBetween(v.washing_selesai, v.final_inspection_mulai);
+  c.waiting_penyerahan = daysBetween(v.final_inspection_selesai, v.penyerahan_mulai);
   c.waiting_invoice = daysBetween(v.tanggal_berkas_ke_billing, v.billing_mulai);
 
   const piutangBasis = v.tanggal_penagihan_asuransi || v.billing_mulai || v.tanggal_berkas_ke_billing;
@@ -1629,7 +1685,7 @@ function renderTable(list){
 function renderBackendWarning(){
   if(STATE.demoMode || !STATE.backendOutdated) return '';
   return `<div role="alert" style="background:var(--bad-soft,#fde8e8);border:1px solid var(--bad);color:var(--bad);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.5;">
-    <b>⚠ Backend Google Sheets belum diperbarui.</b> Kolom-kolom baru (mis. <i>Jenis Pekerjaan</i>, <i>Sumber Part</i>, ADD SPK, Reminder SPK ke-2/3, Akurasi QC) <b>tidak tersimpan</b> sehingga isiannya akan hilang lagi setelah sinkron.
+    <b>⚠ Backend Google Sheets belum diperbarui.</b> Kolom-kolom baru (mis. <i>Tanggal &amp; Jam Improve</i>, <i>Checklist QC</i>, <i>Jenis Pekerjaan</i>, <i>Sumber Part</i>, ADD SPK, Reminder SPK ke-2/3, Akurasi QC) <b>tidak tersimpan</b> sehingga isiannya akan hilang lagi setelah sinkron.
     Perbaikan: buka Google Apps Script → tempel <code>Code.gs</code> terbaru → <b>Deploy → Manage deployments → ✎ (edit) → Version: New version → Deploy</b>.
   </div>`;
 }
@@ -1721,21 +1777,82 @@ function buildFieldHTML(f, v, computed){
   return `<div class="field${wide}"><label for="${fid}">${esc(f.label)}${hint}</label>${control}</div>`;
 }
 
+function checklistStats(stage, v){
+  const items = stage.checklist || [];
+  const r = {total:items.length, ok:0, improve:0, notok:0, missing:[], improves:[], notoks:[], blocked:[]};
+  items.forEach(function(it){
+    const val = v[it.key];
+    if(val==='OK') r.ok++;
+    else if(val==='Improve'){ r.improve++; r.improves.push(it); }
+    else if(val==='Not OK'){ r.notok++; r.notoks.push(it); }
+    else r.missing.push(it);
+    if(val && CHECK_BLOCK.indexOf(val)>=0) r.blocked.push(it);
+  });
+  r.filled = r.ok + r.improve + r.notok;
+  return r;
+}
+
+// Syarat approval QC: semua item checklist terisi dan tidak ada item berhasil di CHECK_BLOCK (Not OK).
+function checklistGate(stage, v){
+  if(!stage.checklist) return {ok:true};
+  const s = checklistStats(stage, v);
+  if(s.missing.length){
+    return {ok:false, stats:s, first:s.missing[0],
+      reason:'Checklist QC belum lengkap ('+s.filled+'/'+s.total+'). Item belum diisi: no. '+s.missing.map(function(i){ return i.n; }).join(', ')+'.'};
+  }
+  const noTime = s.improves.filter(function(it){ return !v[it.atKey]; });
+  if(noTime.length){
+    return {ok:false, stats:s, first:noTime[0],
+      reason:'Item Improve wajib diisi Tanggal & Jam (no. '+noTime.map(function(i){ return i.n; }).join(', ')+').'};
+  }
+  if(s.blocked.length){
+    return {ok:false, stats:s, first:s.blocked[0],
+      reason:'Tidak bisa disetujui: ada item Not OK (no. '+s.blocked.map(function(i){ return i.n; }).join(', ')+'). Perbaiki pekerjaan, lalu ubah hasilnya menjadi OK / Improve.'};
+  }
+  return {ok:true, stats:s};
+}
+
+function buildChecklistHTML(stage, v){
+  if(!stage.checklist) return '';
+  const editable = fieldEditable({role:'qc'});
+  const s = checklistStats(stage, v);
+  const dis = editable ? '' : 'disabled';
+  const rows = stage.checklist.map(function(it){
+    const cur = v[it.key] || '';
+    const cls = cur==='OK' ? 'is-ok' : cur==='Not OK' ? 'is-notok' : cur==='Improve' ? 'is-improve' : '';
+    const btn = function(val, c){
+      return '<button type="button" class="cl-opt '+c+(cur===val?' on':'')+'" data-action="cl-set" data-vid="'+esc(v.id)+'" data-key="'+esc(it.key)+'" data-val="'+esc(val)+'" aria-pressed="'+(cur===val?'true':'false')+'" '+dis+'>'+esc(val)+'</button>';
+    };
+    return '<div class="cl-row '+cls+'" id="cl_'+esc(v.id)+'_'+esc(it.key)+'">'+
+      '<span class="cl-n">'+it.n+'</span><span class="cl-label">'+esc(it.label)+'</span>'+
+      '<span class="cl-opts">'+btn('OK','cl-ok')+btn('Not OK','cl-notok')+btn('Improve','cl-improve')+'</span>'+
+      (cur==='Improve' ? '<div class="cl-sub"><label for="clat_'+esc(v.id)+'_'+esc(it.key)+'">Tanggal &amp; Jam Improve</label>'+
+        '<input type="datetime-local" id="clat_'+esc(v.id)+'_'+esc(it.key)+'" data-field="'+esc(it.atKey)+'" data-vid="'+esc(v.id)+'" value="'+esc(String(v[it.atKey]||'').slice(0,16))+'" '+dis+'></div>' : '')+
+      '</div>';
+  }).join('');
+  return '<div class="cl-box">'+
+    '<div class="cl-head"><div><b>Checklist QC — '+esc(stage.title)+'</b>'+
+    '<div class="cl-count">Terisi <b>'+s.filled+'/'+s.total+'</b> · OK '+s.ok+' · Improve '+s.improve+' · Not OK '+s.notok+'</div></div>'+
+    '<button type="button" class="btn btn-sm" data-action="cl-all-ok" data-vid="'+esc(v.id)+'" data-stage="'+esc(stage.key)+'" '+dis+'>Tandai semua OK</button></div>'+
+    rows+'</div>';
+}
+
 function buildApprovalBar(stage, v){
   const ap = stage.approval;
   if(!ap) return '';
   const editable = fieldEditable({role:'qc'});
   const qcName = (v[ap.qcField]||'').trim();
   const approved = !!v[ap.selesaiField] && v[ap.hasilField]===ap.hasilOk;
+  const gate = checklistGate(stage, v);
   return `
   <div class="qc-approve-bar ${approved?'approved':''}">
     <div class="qc-approve-info">
       <strong>${approved?'✓ Disetujui':'Belum disetujui'}</strong>
       <span class="hint">${approved
         ? 'Hasil: '+esc(v[ap.hasilField])+' · '+esc(fmtDateTime(v[ap.selesaiField]))
-        : 'Isi Nama QC di bawah, lalu klik tombol ini — Hasil QC, Kesimpulan, dan Tanggal Selesai terisi otomatis.'}</span>
+        : (gate.ok ? 'Isi Nama QC di bawah, lalu klik tombol ini — Hasil QC, Kesimpulan, dan Tanggal Selesai terisi otomatis.' : esc(gate.reason))}</span>
     </div>
-    <button type="button" class="btn btn-accent btn-sm" data-action="qc-approve" data-stage="${stage.key}" data-vid="${esc(v.id)}" ${editable?'':'disabled'} title="${qcName?'':'Isi Nama QC dahulu'}">✓ Setujui (Approval QC)</button>
+    <button type="button" class="btn btn-accent btn-sm" data-action="qc-approve" data-stage="${stage.key}" data-vid="${esc(v.id)}" ${editable?'':'disabled'} ${gate.ok?'':'aria-disabled="true" style="opacity:.55;"'} title="${gate.ok?(qcName?'':'Isi Nama QC dahulu'):esc(gate.reason)}">✓ Setujui (Approval QC)</button>
   </div>`;
 }
 
@@ -1758,6 +1875,7 @@ function buildStageCard(stage, idx, v, computed, summary){
     <div class="stage-content">
       ${st.skipped?`<div class="skip-note">Tahap ini <b>dilewati</b> karena jenis pekerjaan <b>${esc(v.jenis_pekerjaan)}</b>. Kendaraan langsung lanjut ke tahap berikutnya. Isi kolom di bawah hanya bila tahap ini ternyata tetap dikerjakan.</div>`:''}
       ${canSendWA()?`<div class="wa-bar"><span>Kirim update proses <b>${esc(stage.title)}</b> ke customer (khusus Service Advisor)</span><button type="button" class="btn btn-sm" data-action="wa-stage" data-id="${esc(v.id)}" data-stage="${esc(stage.key)}">Kirim via WA</button></div>`:''}
+      ${buildChecklistHTML(stage, v)}
       ${buildApprovalBar(stage, v)}
       <div class="field-grid">${fieldsHTML}</div>
     </div>
@@ -1932,9 +2050,22 @@ function approveQcStage(stageKey, vid){
     if(el){ el.focus(); }
     return;
   }
+  const gate = checklistGate(stage, v);
+  if(!gate.ok){
+    toast(gate.reason);
+    const row = document.getElementById('cl_'+vid+'_'+gate.first.key);
+    if(row && row.scrollIntoView) row.scrollIntoView({block:'center'});
+    return;
+  }
   const patch = {};
   patch[ap.hasilField] = ap.hasilOk;
-  patch[ap.kesimpulanField] = 'Disetujui oleh '+qcName+'. Hasil QC: '+ap.hasilOk+'.';
+  let note = 'Disetujui oleh '+qcName+'. Hasil QC: '+ap.hasilOk+'.';
+  if(stage.checklist){
+    const st = gate.stats;
+    note += ' Checklist: '+st.ok+' OK, '+st.improve+' Improve.';
+    if(st.improve) note += ' Improve: '+st.improves.map(function(i){ return i.n+'. '+i.label+' ('+fmtDateTime(v[i.atKey])+')'; }).join('; ')+'.';
+  }
+  patch[ap.kesimpulanField] = note;
   patch[ap.selesaiField] = nowLocalISOMinute();
   if(ap.serahField) patch[ap.serahField] = true;
   bulkSaveFields(vid, patch);
@@ -1986,7 +2117,7 @@ async function loadVehicles(){
     // baru (mis. sumber_part dari Revisi v2.9/v3.6), jadi field itu tidak pernah tersimpan &
     // pilihan user "hilang lagi" setelah sinkron. listVehicles_ versi baru SELALU menyertakan
     // key tsb (null bila kosong), versi lama tidak — jadi absennya key = backend lama.
-    STATE.backendOutdated = STATE.vehicles.length>0 && !Object.prototype.hasOwnProperty.call(STATE.vehicles[0], 'jenis_pekerjaan');
+    STATE.backendOutdated = STATE.vehicles.length>0 && !Object.prototype.hasOwnProperty.call(STATE.vehicles[0], 'final_inspection_cl_08_at');
     STATE.connError = '';
     scheduleRender();
   }catch(err){
@@ -2219,6 +2350,29 @@ document.addEventListener('click', e=>{
   const waBtn = e.target.closest('[data-action="wa-link"]');
   if(waBtn){ waLink(waBtn.dataset.id); return; }
 
+  const clBtn = e.target.closest('[data-action="cl-set"]');
+  if(clBtn && !clBtn.hasAttribute('disabled')){
+    const cv = STATE.vehicles.find(function(x){ return x.id===clBtn.dataset.vid; });
+    const same = cv && cv[clBtn.dataset.key]===clBtn.dataset.val;
+    const newVal = same ? '' : clBtn.dataset.val; // klik lagi = kosongkan
+    const clPatch = {};
+    clPatch[clBtn.dataset.key] = newVal;
+    clPatch[clBtn.dataset.key+'_at'] = newVal==='Improve' ? nowLocalISOMinute() : ''; // Improve: catat tanggal & jam otomatis
+    bulkSaveFields(clBtn.dataset.vid, clPatch);
+    return;
+  }
+  const clAll = e.target.closest('[data-action="cl-all-ok"]');
+  if(clAll && !clAll.hasAttribute('disabled')){
+    const cs = STAGE_DEFS.find(function(x){ return x.key===clAll.dataset.stage; });
+    const cv2 = STATE.vehicles.find(function(x){ return x.id===clAll.dataset.vid; });
+    if(cs && cs.checklist && cv2){
+      const patch = {};
+      cs.checklist.forEach(function(it){ if(!cv2[it.key]) patch[it.key] = 'OK'; }); // hanya item yang masih kosong
+      if(Object.keys(patch).length) bulkSaveFields(clAll.dataset.vid, patch);
+      else toast('Semua item sudah terisi.');
+    }
+    return;
+  }
   const approveBtn = e.target.closest('[data-action="qc-approve"]');
   if(approveBtn && !approveBtn.hasAttribute('disabled')){
     approveQcStage(approveBtn.dataset.stage, approveBtn.dataset.vid);
