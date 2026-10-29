@@ -152,6 +152,7 @@
   .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);}
   .panel-head h2{font-size:17px;}
   .panel-body{padding:14px 18px;}
+  .table-more{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2);}
   .spk-tbl tbody tr{cursor:pointer;}
   .spk-tbl tr.spk-sum td{font-weight:800;border-top:2px solid var(--line-strong);background:var(--surface-2);}
   .spk-late{color:var(--bad);font-weight:700;}
@@ -818,7 +819,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', showSpkIns:null, leadtimeOpen:true,
+  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', showSpkIns:null, spkOpen:true, showAllRows:false, leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all', periodMonth:'all', periodYear:'all', periodBasis:'awal',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -1008,6 +1009,10 @@ function renderPeriodBar(){
   </div>`;
 }
 
+function createdTime(v){
+  const t = new Date(v.createdAt).getTime();
+  return isNaN(t) ? 0 : t;
+}
 function filteredVehicles(){
   const q = STATE.search.trim().toLowerCase();
   return periodVehicles().filter(v=>{
@@ -1022,7 +1027,7 @@ function filteredVehicles(){
       if(!hay.includes(q)) return false;
     }
     return true;
-  });
+  }).sort(function(a,b){ return createdTime(b) - createdTime(a); }); // terbaru di atas
 }
 
 function currentRoleLabel(){
@@ -1189,6 +1194,7 @@ function renderSpkReport(list){
       '<td><b>'+esc(g.name)+'</b></td>'+spkRowCells(g)+'</tr>';
   }).join('');
   const t = data.total;
+  const spkOpen = STATE.spkOpen!==false;
   const totalRow = data.rows.length
     ? '<tr class="spk-sum" data-action="open-spk-ins" data-name="__all" tabindex="0" title="Klik untuk melihat semua kendaraan"><td><b>Semua Asuransi</b></td>'+spkRowCells(t)+'</tr>' : '';
   return `
@@ -1198,15 +1204,16 @@ function renderSpkReport(list){
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <span class="sub" style="font-size:11.5px;color:var(--ink-3);">Lapor asuransi → SPK terbit${periodActive()?' · periode '+esc(periodLabel()):''} · merah = lebih dari ${BATAS_LEADTIME_LAPOR_HARI} hari</span>
         <button type="button" class="btn btn-sm" data-action="export-spk-csv" ${data.rows.length?'':'disabled'}>Unduh CSV</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="toggle-spk" aria-expanded="${spkOpen?'true':'false'}">${spkOpen?'Sembunyikan':'Tampilkan'}</button>
       </div>
     </div>
-    <div class="table-wrap">
+    ${spkOpen ? `<div class="table-wrap">
       <table class="spk-tbl">
         <thead><tr><th>Asuransi</th><th>Kendaraan</th><th>SPK Terbit</th><th>Rata-rata</th><th>Median</th><th>Terlama</th><th>&gt; ${BATAS_LEADTIME_LAPOR_HARI} Hari</th><th>Menunggu SPK</th><th>Rata-rata Tunggu</th></tr></thead>
         <tbody>${body || '<tr><td colspan="9"><div class="empty-state">Belum ada kendaraan asuransi dengan Tanggal Lapor Asuransi pada periode ini.</div></td></tr>'}${totalRow}</tbody>
       </table>
     </div>
-    <div class="panel-body" style="padding-top:8px;font-size:11.5px;color:var(--ink-3);">Kendaraan = jumlah yang sudah punya Tanggal Lapor Asuransi. Rata-rata/Median/Terlama dihitung dari SPK yang sudah terbit. Menunggu SPK = belum terbit (dihitung sampai hari ini). Klik baris untuk melihat daftar kendaraannya.</div>
+    <div class="panel-body" style="padding-top:8px;font-size:11.5px;color:var(--ink-3);">Kendaraan = jumlah yang sudah punya Tanggal Lapor Asuransi. Rata-rata/Median/Terlama dihitung dari SPK yang sudah terbit. Menunggu SPK = belum terbit (dihitung sampai hari ini). Klik baris untuk melihat daftar kendaraannya.</div>` : ''}
   </div>`;
 }
 
@@ -1774,8 +1781,12 @@ function asuransiLaporCell(v){
   return nama+'<div style="margin-top:3px;" title="'+esc(tip)+'"><span class="badge '+cls+'">'+label+'</span> <span class="veh-sub"'+(a.late?' style="color:var(--bad);font-weight:700;"':'')+'>'+state+(a.late?' · lewat '+BATAS_LEADTIME_LAPOR_HARI+' hari':'')+'</span></div>';
 }
 
+const VEHICLE_PAGE = 30;
 function renderTable(list){
-  const rows = list.map((v,i)=>{
+  const total = list.length;
+  const expanded = !!STATE.showAllRows;
+  const visible = (expanded || total<=VEHICLE_PAGE) ? list : list.slice(0, VEHICLE_PAGE);
+  const rows = visible.map((v,i)=>{
     const sum = vehicleSummary(v);
     const badgeClass = v.jumlah_panel!=null ? ('badge-'+(panelStatus(v.jumlah_panel)||'').toLowerCase()) : 'badge-neutral';
     return `
@@ -1829,6 +1840,10 @@ function renderTable(list){
         <tbody>${rows || `<tr><td colspan="9"><div class="empty-state">Belum ada kendaraan. Klik “+ Kendaraan Baru” untuk mulai.</div></td></tr>`}</tbody>
       </table>
     </div>
+    ${total>VEHICLE_PAGE ? `<div class="table-more">
+      <span>${expanded ? 'Menampilkan semua <b>'+total+'</b> kendaraan' : 'Menampilkan <b>'+VEHICLE_PAGE+'</b> kendaraan terbaru dari <b>'+total+'</b>'}</span>
+      <button type="button" class="btn btn-sm" data-action="toggle-rows">${expanded ? 'Tampilkan '+VEHICLE_PAGE+' Terbaru Saja' : 'Lihat Semua ('+total+')'}</button>
+    </div>` : ''}
   </div>`;
 }
 
@@ -2483,6 +2498,8 @@ document.addEventListener('click', e=>{
   if(e.target.matches('[data-action="close-ins-overlay"]')){ STATE.showInsLate = false; render(); return; }
   const insChip = e.target.closest('[data-action="ins-filter-sa"]');
   if(insChip){ STATE.insSA = insChip.dataset.sa; render(); return; }
+  if(e.target.closest('[data-action="toggle-spk"]')){ STATE.spkOpen = STATE.spkOpen===false; render(); return; }
+  if(e.target.closest('[data-action="toggle-rows"]')){ STATE.showAllRows = !STATE.showAllRows; render(); return; }
   if(e.target.closest('[data-action="toggle-leadtime"]')){ STATE.leadtimeOpen = STATE.leadtimeOpen===false; render(); return; }
 
   const row = e.target.closest('[data-action="open-vehicle"]');
