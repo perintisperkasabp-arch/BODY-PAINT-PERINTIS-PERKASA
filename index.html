@@ -152,6 +152,16 @@
   .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);}
   .panel-head h2{font-size:17px;}
   .panel-body{padding:14px 18px;}
+  .prog-legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:9px 18px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:11.5px;color:var(--ink-2);align-items:center;}
+  .prog-legend .lg-title{font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-size:10.5px;}
+  .prog-legend .lg{display:inline-flex;align-items:center;gap:6px;}
+  .prog-legend .lg i{display:inline-block;width:22px;height:7px;border-radius:3px;flex:none;}
+  .prog-legend .lg i.done{background:var(--good);}
+  .prog-legend .lg i.current{background:var(--accent);}
+  .prog-legend .lg i.missed{background:var(--bad);}
+  .prog-legend .lg i.stopped{background:repeating-linear-gradient(135deg,var(--bad) 0 3px,var(--bad-ink) 3px 6px);}
+  .prog-legend .lg i.skipped{background:repeating-linear-gradient(135deg,var(--surface-3) 0 3px,transparent 3px 6px);border:1px solid var(--line);height:7px;box-sizing:border-box;}
+  .prog-legend .lg i.todo{background:var(--surface-3);}
   .table-more{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2);}
   .spk-tbl tbody tr{cursor:pointer;}
   .spk-tbl tr.spk-sum td{font-weight:800;border-top:2px solid var(--line-strong);background:var(--surface-2);}
@@ -182,7 +192,7 @@
   .progress-seg{height:7px;flex:1;border-radius:3px;background:var(--surface-3);}
   .progress-seg.done{background:var(--good);}
   .progress-seg.current{background:var(--accent);}
-  .progress-seg.stopped{background:var(--bad);}
+  .progress-seg.stopped{background:repeating-linear-gradient(135deg,var(--bad) 0 3px,var(--bad-ink) 3px 6px);}
   .progress-seg.missed{background:var(--bad);}
   .progress-seg.skipped{background:repeating-linear-gradient(135deg,var(--surface-3) 0 3px,transparent 3px 6px);opacity:.7;}
   .stage-card.skipped .stage-head{opacity:.6;}
@@ -1860,6 +1870,15 @@ function renderTable(list){
         </select>
       </div>
     </div>
+    <div class="prog-legend" role="note" aria-label="Keterangan warna progress">
+      <span class="lg-title">Warna progress</span>
+      <span class="lg"><i class="done"></i><b>Hijau</b> = tahap selesai &amp; terisi lengkap</span>
+      <span class="lg"><i class="current"></i><b>Oranye</b> = tahap sedang berjalan</span>
+      <span class="lg"><i class="missed"></i><b>Merah</b> = tahap terlewati tapi belum diisi / checklist QC belum lengkap</span>
+      <span class="lg"><i class="stopped"></i><b>Merah bergaris</b> = Job Stoppage (pengerjaan ditahan sementara)</span>
+      <span class="lg"><i class="skipped"></i><b>Abu bergaris</b> = tidak diperlukan (sesuai Jenis Pekerjaan)</span>
+      <span class="lg"><i class="todo"></i><b>Abu polos</b> = belum sampai tahap ini</span>
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr>
@@ -2063,12 +2082,12 @@ function buildStageCard(stage, idx, v, computed, summary){
     <button type="button" class="stage-head" data-action="toggle-stage" data-key="${key}">
       <span class="ttl">
         <span class="${numCls}">${st.skipped?'–':(missed?'!':(st.finished?'✓':(idx+1)))}</span>
-        <span><h3>${esc(stage.title)}</h3><span class="role-tag ${missed?'missed':''}">${st.skipped?'Tidak diperlukan — '+esc(v.jenis_pekerjaan):(missed?esc(stage.roleLabel)+' · BELUM DIISI / TERLEWATI':esc(stage.roleLabel))}</span></span>
+        <span><h3>${esc(stage.title)}</h3><span class="role-tag ${missed?'missed':''}">${st.skipped?'Tidak wajib diisi — '+esc(v.jenis_pekerjaan):(missed?esc(stage.roleLabel)+' · BELUM DIISI / TERLEWATI':esc(stage.roleLabel))}</span></span>
       </span>
       <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
     </button>
     <div class="stage-content">
-      ${st.skipped?`<div class="skip-note">Tahap ini <b>dilewati</b> karena jenis pekerjaan <b>${esc(v.jenis_pekerjaan)}</b>. Kendaraan langsung lanjut ke tahap berikutnya. Isi kolom di bawah hanya bila tahap ini ternyata tetap dikerjakan.</div>`:''}
+      ${st.skipped?`<div class="skip-note">Tahap ini <b>tidak wajib diisi</b> — dilewati karena jenis pekerjaan <b>${esc(v.jenis_pekerjaan)}</b>. Kendaraan langsung lanjut ke tahap berikutnya dan tahap ini tidak dihitung sebagai belum diisi. Isi kolom di bawah hanya bila tahap ini ternyata tetap dikerjakan.</div>`:''}
       ${canSendWA()?`<div class="wa-bar"><span>Kirim update proses <b>${esc(stage.title)}</b> ke customer (khusus Service Advisor)</span><button type="button" class="btn btn-sm" data-action="wa-stage" data-id="${esc(v.id)}" data-stage="${esc(stage.key)}">Kirim via WA</button></div>`:''}
       ${buildChecklistHTML(stage, v)}
       ${buildApprovalBar(stage, v)}
