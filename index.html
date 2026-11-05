@@ -174,6 +174,8 @@
   .ins-tab.active.wait{background:var(--bad-soft);border-color:var(--bad);color:var(--bad-ink);}
   .ins-tab.active.done{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
   .od-chips-label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);align-self:center;margin-right:2px;}
+  .spk-lock-banner{background:var(--bad-soft);color:var(--bad-ink);border:1px solid var(--bad);border-radius:10px;padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .spk-lock-banner b{flex:none;}
   .table-more{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2);}
   .spk-tbl tbody tr{cursor:pointer;}
   .spk-tbl tr.spk-sum td{font-weight:800;border-top:2px solid var(--line-strong);background:var(--surface-2);}
@@ -869,7 +871,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', insTab:'wait', insName:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', showSpkIns:null, spkOpen:true, showAllRows:false, leadtimeOpen:true,
+  showNewModal:false, spkAlert:null, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', insTab:'wait', insName:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', showSpkIns:null, spkOpen:true, showAllRows:false, leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all', periodMonth:'all', periodYear:'all', periodBasis:'awal',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -2163,10 +2165,37 @@ function buildStageCard(stage, idx, v, computed, summary){
     </button>
     <div class="stage-content">
       ${st.skipped?`<div class="skip-note">Tahap ini <b>tidak wajib diisi</b> — dilewati karena jenis pekerjaan <b>${esc(v.jenis_pekerjaan)}</b>. Kendaraan langsung lanjut ke tahap berikutnya dan tahap ini tidak dihitung sebagai belum diisi. Isi kolom di bawah hanya bila tahap ini ternyata tetap dikerjakan.</div>`:''}
+      ${idx>0 && spkGate(v).blocked?`<div class="skip-note" style="border-color:var(--bad);color:var(--bad-ink);">🔒 Tahap ini <b>terkunci</b> sampai <b>Tanggal Terbit SPK</b> diisi di Pelaporan &amp; Intake.</div>`:''}
       ${canSendWA()?`<div class="wa-bar"><span>Kirim update proses <b>${esc(stage.title)}</b> ke customer (khusus Service Advisor)</span><button type="button" class="btn btn-sm" data-action="wa-stage" data-id="${esc(v.id)}" data-stage="${esc(stage.key)}">Kirim via WA</button></div>`:''}
       ${buildChecklistHTML(stage, v)}
       ${buildApprovalBar(stage, v)}
       <div class="field-grid">${fieldsHTML}</div>
+    </div>
+  </div>`;
+}
+
+function renderSpkAlertModal(){
+  const a = STATE.spkAlert;
+  if(!a) return '';
+  const v = STATE.vehicles.find(x=>x.id===a.vid);
+  if(!v) return '';
+  const blockMode = a.mode==='block';
+  return `
+  <div class="modal-mask" data-action="spk-alert-overlay" role="alertdialog" aria-modal="true" aria-labelledby="spkAlertTitle">
+    <div class="modal-box" data-stop-close style="max-width:480px;border-top:5px solid var(--bad);">
+      <h2 id="spkAlertTitle" style="color:var(--bad-ink);">⚠ Tanggal Terbit SPK Belum Terisi</h2>
+      <p style="margin:0 0 8px;font-size:14px;line-height:1.5;">
+        Kendaraan <b>${esc(v.no_polisi||v.no_rangka||'—')}</b>${v.nama_asuransi?' ('+esc(v.nama_asuransi)+')':''} adalah unit <b>Asuransi</b> yang <b>Tanggal Terbit SPK</b>-nya belum diisi.
+      </p>
+      <p style="margin:0 0 14px;font-size:14px;line-height:1.5;">
+        ${blockMode
+          ? 'Data <b>'+esc(a.stage||'tahap berikutnya')+'</b> <b>tidak bisa disimpan</b> dan kendaraan <b>tidak bisa lanjut ke proses berikutnya</b> sebelum Tanggal Terbit SPK diisi.'
+          : 'Kendaraan ini <b>belum bisa lanjut ke proses berikutnya</b> sebelum Tanggal Terbit SPK diisi di tahap <b>Pelaporan &amp; Intake</b>.'}
+      </p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+        <button type="button" class="btn btn-ghost" data-action="spk-alert-close">${blockMode?'Mengerti':'Nanti'}</button>
+        <button type="button" class="btn btn-accent" data-action="spk-alert-fill">Isi Tanggal Terbit SPK</button>
+      </div>
     </div>
   </div>`;
 }
@@ -2191,6 +2220,7 @@ function renderDrawer(){
         </div>
       </div>
       <div class="drawer-body">
+        ${spkGate(v).blocked?`<div class="spk-lock-banner" role="alert"><b>⚠ Tanggal Terbit SPK belum terisi.</b> Kendaraan asuransi ini tidak bisa lanjut ke proses berikutnya (tahap setelah Pelaporan &amp; Intake terkunci). <button type="button" class="btn btn-sm btn-accent" data-action="spk-alert-fill">Isi Tanggal Terbit SPK</button></div>`:''}
         ${STAGE_DEFS.map((s,i)=>buildStageCard(s,i,v,computed,summary)).join('')}
         <p class="readonly-note">Kolom di luar POS Anda (${esc(currentRoleLabel())}) tampil non-aktif. Hubungi Kepala Bengkel / Admin Head bila perlu mengisi bagian POS lain.</p>
       </div>
@@ -2248,7 +2278,7 @@ function doRender(){
   if(!STATE.role){
     root.innerHTML = renderGate();
   } else {
-    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal() + renderPartModal() + renderNoPanelModal() + renderSpkModal();
+    root.innerHTML = renderShell() + renderDrawer() + renderNewModal() + renderOverdueModal() + renderInsLateModal() + renderStopModal() + renderPartModal() + renderNoPanelModal() + renderSpkModal() + renderSpkAlertModal();
   }
   if(oldDrawer){ const d = root.querySelector('.drawer'); if(d) d.scrollTop = drawerTop; }
   if(oldModal){ const m = root.querySelector('.modal-box'); if(m) m.scrollTop = modalTop; }
@@ -2309,8 +2339,48 @@ function saveField(vid, key, value){
   bulkSaveFields(vid, {[key]:value});
 }
 
+// ---- GERBANG "TANGGAL TERBIT SPK" ----
+// Kendaraan ASURANSI yang Tanggal Terbit SPK-nya belum terisi tidak boleh lanjut ke proses
+// berikutnya (Pengadaan Part dst.). Hanya tahap Pelaporan & Intake yang boleh diisi.
+function spkGate(v){
+  if(!v || v.tipe_customer!=='Asuransi' || v.tanggal_terbit_spk) return {blocked:false};
+  return {blocked:true, reason:'Tanggal Terbit SPK belum terisi'};
+}
+let _fieldStageIdx = null;
+function fieldStageIdx(key){
+  if(!_fieldStageIdx){
+    _fieldStageIdx = {};
+    STAGE_DEFS.forEach(function(st, i){
+      if(i===0) return;
+      (st.fields||[]).forEach(function(f){ if(f.key) _fieldStageIdx[f.key] = i; });
+      (st.checklist||[]).forEach(function(it){ _fieldStageIdx[it.key] = i; if(it.atKey) _fieldStageIdx[it.atKey] = i; });
+    });
+  }
+  return _fieldStageIdx[key];
+}
+// true bila patch ini mengisi data tahap SESUDAH Intake pada kendaraan yang masih terkunci.
+function spkGateBlocksPatch(v, patch){
+  if(!spkGate(v).blocked) return null;
+  if(patch.tanggal_terbit_spk) return null;            // sedang mengisi SPK -> boleh
+  let hit = null;
+  Object.keys(patch).forEach(function(k){
+    const i = fieldStageIdx(k);
+    if(i!=null && !hit && patch[k]!=null && patch[k]!=='' && patch[k]!==false) hit = i;   // mengosongkan nilai tetap boleh
+  });
+  return hit;
+}
+function showSpkAlert(vid, mode, stageIdx){
+  STATE.spkAlert = {vid:vid, mode:mode, stage: stageIdx!=null && STAGE_DEFS[stageIdx] ? STAGE_DEFS[stageIdx].title : ''};
+}
+
 function bulkSaveFields(vid, patch){
   const v = STATE.vehicles.find(x=>x.id===vid);
+  const blockedIdx = spkGateBlocksPatch(v, patch);
+  if(blockedIdx!=null){
+    showSpkAlert(vid, 'block', blockedIdx);
+    render();                                           // kembalikan isian ke nilai semula
+    return;
+  }
   if(v) Object.assign(v, patch);
   scheduleRender();
   if(STATE.demoMode) return;
@@ -2630,6 +2700,22 @@ document.addEventListener('click', e=>{
   if(e.target.closest('[data-action="toggle-rows"]')){ STATE.showAllRows = !STATE.showAllRows; render(); return; }
   if(e.target.closest('[data-action="toggle-leadtime"]')){ STATE.leadtimeOpen = STATE.leadtimeOpen===false; render(); return; }
 
+  if(e.target.closest('[data-action="spk-alert-close"]') || e.target.matches('[data-action="spk-alert-overlay"]')){ STATE.spkAlert = null; render(); return; }
+  if(e.target.closest('[data-action="spk-alert-fill"]')){
+    const vid = STATE.spkAlert ? STATE.spkAlert.vid : STATE.openId;
+    STATE.spkAlert = null;
+    if(vid){
+      STATE.openId = vid;
+      if(!STATE.openStageKeys) STATE.openStageKeys = new Set();
+      STATE.openStageKeys.add(vid+':intake');
+      render();
+      setTimeout(function(){
+        const el = document.getElementById('f_'+vid+'_tanggal_terbit_spk');
+        if(el){ try{ if(el.scrollIntoView) el.scrollIntoView({block:'center'}); el.focus(); if(el.showPicker) el.showPicker(); }catch(_){} }
+      }, 60);
+    } else render();
+    return;
+  }
   const row = e.target.closest('[data-action="open-vehicle"]');
   if(row){
     STATE.showOverdue = false; STATE.showInsLate = false; STATE.showStop = false; STATE.showPart = false; STATE.showNoPanel = false; STATE.showSpkIns = null;
@@ -2640,6 +2726,8 @@ document.addEventListener('click', e=>{
       const sum = vehicleSummary(v);
       const idx = sum.allDone ? 0 : sum.currentIdx;
       STATE.openStageKeys.add(STATE.openId+':'+STAGE_DEFS[idx].key);
+      // Notifikasi pop-up untuk SA: unit asuransi belum ada Tanggal Terbit SPK.
+      if(STATE.role==='sa' && spkGate(v).blocked) showSpkAlert(v.id, 'open', null);
     }
     render();
     return;
@@ -2743,6 +2831,7 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-part"]')){ e.preventDefault(); STATE.showPart = true; STATE.partSumber = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showSpkIns!=null){ STATE.showSpkIns = null; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('tr[data-action="open-spk-ins"]')){ e.preventDefault(); STATE.showSpkIns = e.target.closest('tr[data-action="open-spk-ins"]').dataset.name; render(); return; }
+  if(e.key==='Escape' && STATE.spkAlert){ STATE.spkAlert = null; render(); return; }
   if(e.key==='Escape' && STATE.showNoPanel){ STATE.showNoPanel = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-nopanel"]')){ e.preventDefault(); STATE.showNoPanel = true; STATE.noPanelSA = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showStop){ STATE.showStop = false; render(); return; }
