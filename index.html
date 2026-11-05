@@ -162,6 +162,18 @@
   .prog-legend .lg i.stopped{background:repeating-linear-gradient(135deg,var(--bad) 0 3px,var(--bad-ink) 3px 6px);}
   .prog-legend .lg i.skipped{background:repeating-linear-gradient(135deg,var(--surface-3) 0 3px,transparent 3px 6px);border:1px solid var(--line);height:7px;box-sizing:border-box;}
   .prog-legend .lg i.todo{background:var(--surface-3);}
+  .ins-split{display:flex;flex-direction:column;gap:4px;margin-top:8px;}
+  .ins-split-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--line);}
+  .ins-split-row b{font-family:var(--font-mono);font-size:14px;}
+  .ins-split-row.wait{background:var(--bad-soft);color:var(--bad-ink);border-color:transparent;}
+  .ins-split-row.done{background:var(--surface-2);color:var(--ink-2);}
+  .ins-split-row:hover{filter:brightness(.97);}
+  .ins-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .ins-tab{appearance:none;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .ins-tab:hover{background:var(--surface-2);}
+  .ins-tab.active.wait{background:var(--bad-soft);border-color:var(--bad);color:var(--bad-ink);}
+  .ins-tab.active.done{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-strong);}
+  .od-chips-label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);align-self:center;margin-right:2px;}
   .table-more{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2);}
   .spk-tbl tbody tr{cursor:pointer;}
   .spk-tbl tr.spk-sum td{font-weight:800;border-top:2px solid var(--line-strong);background:var(--surface-2);}
@@ -857,7 +869,7 @@ const STATE = {
   currentUser:null, role:null, userName:'',
   vehicles:[], unsub:null,
   openId:null, openStageKeys:new Set(),
-  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', showSpkIns:null, spkOpen:true, showAllRows:false, leadtimeOpen:true,
+  showNewModal:false, showOverdue:false, overdueSA:'all', showInsLate:false, insSA:'all', insTab:'wait', insName:'all', showStop:false, stopSA:'all', showPart:false, partSumber:'all', showNoPanel:false, noPanelSA:'all', showSpkIns:null, spkOpen:true, showAllRows:false, leadtimeOpen:true,
   search:'', filterStage:'all', filterCustomer:'all', periodMonth:'all', periodYear:'all', periodBasis:'awal',
   loginUserId:'', loginPassword:'', loginError:'', showPassword:false,
 };
@@ -1586,44 +1598,81 @@ function renderStopModal(){
 
 function renderInsLateModal(){
   if(!STATE.showInsLate) return '';
-  const all = lateInsurerVehicles(periodVehicles());
+  const everyone = lateInsurerVehicles(periodVehicles());
+  const waitAll = everyone.filter(function(it){ return !it.info.done; });
+  const doneAll = everyone.filter(function(it){ return it.info.done; });
+  const tab = STATE.insTab==='done' ? 'done' : 'wait';
+  const base = tab==='wait' ? waitAll : doneAll;   // urut: paling lama di atas
   const saKey = function(v){ return v.petugas_sa || '(belum ada SA)'; };
+  const insKey = function(it){ return it.info.nama || '(asuransi belum dipilih)'; };
+  // chip asuransi (dihitung dari tab aktif) — membantu mengelompokkan siapa yang harus dihubungi
+  const insCounts = {};
+  base.forEach(function(it){ const k = insKey(it); insCounts[k] = (insCounts[k]||0)+1; });
+  const insNames = Object.keys(insCounts).sort(function(a,b){ return insCounts[b]-insCounts[a] || a.localeCompare(b); });
+  const selIns = STATE.insName && insCounts[STATE.insName] ? STATE.insName : 'all';
+  const byIns = selIns==='all' ? base : base.filter(function(it){ return insKey(it)===selIns; });
   const counts = {};
-  all.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
+  byIns.forEach(function(it){ const k = saKey(it.v); counts[k] = (counts[k]||0)+1; });
   const saNames = Object.keys(counts).sort();
   const sel = STATE.insSA && counts[STATE.insSA] ? STATE.insSA : 'all';
-  const items = sel==='all' ? all : all.filter(function(it){ return saKey(it.v)===sel; });
-  const chips = ['<button type="button" class="od-chip '+(sel==='all'?'active':'')+'" data-action="ins-filter-sa" data-sa="all">Semua SA · '+all.length+'</button>']
+  const items = sel==='all' ? byIns : byIns.filter(function(it){ return saKey(it.v)===sel; });
+  const chipsIns = ['<button type="button" class="od-chip '+(selIns==='all'?'active':'')+'" data-action="ins-filter-name" data-name="__all">Semua · '+base.length+'</button>']
+    .concat(insNames.map(function(n){
+      return '<button type="button" class="od-chip '+(selIns===n?'active':'')+'" data-action="ins-filter-name" data-name="'+esc(n)+'">'+esc(n)+' · '+insCounts[n]+'</button>';
+    })).join('');
+  const chips = ['<button type="button" class="od-chip '+(sel==='all'?'active':'')+'" data-action="ins-filter-sa" data-sa="all">Semua SA · '+byIns.length+'</button>']
     .concat(saNames.map(function(n){
       return '<button type="button" class="od-chip '+(sel===n?'active':'')+'" data-action="ins-filter-sa" data-sa="'+esc(n)+'">'+esc(n)+' · '+counts[n]+'</button>';
     })).join('');
+  const avg = items.length ? items.reduce(function(a,it){ return a+it.info.days; },0)/items.length : null;
   const rows = items.map(function(it, i){
     const v = it.v, sum = vehicleSummary(v), info = it.info;
+    const prio = tab==='wait' && info.days>=BATAS_PRIORITAS_SPK_HARI;
+    const last = tab==='wait'
+      ? '<span class="badge badge-heavy">'+info.days+' hari</span><div class="veh-sub" style="color:var(--bad);font-weight:700;">'+(prio?'PRIORITAS · ':'')+'sudah menunggu</div>'
+      : '<span class="badge badge-heavy">'+info.days+' hari</span><div class="veh-sub">lapor → SPK terbit</div>';
+    const dates = tab==='wait'
+      ? 'Lapor: '+fmtDate(v.tanggal_lapor_asuransi)+(v.status_lapor_asuransi?' · '+esc(v.status_lapor_asuransi):'')
+      : 'Lapor: '+fmtDate(v.tanggal_lapor_asuransi)+' · SPK: '+fmtDate(v.tanggal_terbit_spk);
     return `
     <tr data-action="open-vehicle" data-id="${esc(v.id)}">
       <td class="mono">${i+1}</td>
       <td class="mono veh-id">${esc(v.no_polisi||'—')}<div class="veh-sub">${esc(v.nama_pemilik||'—')}</div></td>
       <td><b>${esc(v.petugas_sa||'—')}</b></td>
-      <td><b>${esc(info.nama||'—')}</b><div class="veh-sub">Lapor: ${fmtDate(v.tanggal_lapor_asuransi)}${v.tanggal_terbit_spk?' · SPK: '+fmtDate(v.tanggal_terbit_spk):''}</div></td>
+      <td><b>${esc(info.nama||'—')}</b><div class="veh-sub">${dates}</div></td>
       <td>${esc(sum.currentLabel)}${sum.anyStopped?' ⏸':''}</td>
-      <td><span class="badge badge-heavy">${info.days} hari</span><div class="veh-sub" style="color:${info.done?'var(--ink-3)':'var(--bad)'};font-weight:${info.done?'500':'700'};">${info.done?'SPK sudah terbit':'Menunggu SPK'}</div></td>
+      <td>${last}</td>
     </tr>`;
   }).join('');
+  const emptyTxt = tab==='wait' ? 'Tidak ada kendaraan yang menunggu SPK lebih dari '+BATAS_LEADTIME_LAPOR_HARI+' hari. 🎉' : 'Tidak ada kendaraan yang SPK-nya terbit lebih dari '+BATAS_LEADTIME_LAPOR_HARI+' hari.';
+  const subTxt = tab==='wait'
+    ? 'SPK <b>belum terbit</b> dan sudah menunggu lebih dari '+BATAS_LEADTIME_LAPOR_HARI+' hari sejak lapor — <b>prioritas untuk dihubungi ke asuransi</b>. Urut dari yang paling lama menunggu; ≥ '+BATAS_PRIORITAS_SPK_HARI+' hari ditandai PRIORITAS. Gunakan chip asuransi untuk mengelompokkan telepon per asuransi.'
+    : 'SPK <b>sudah terbit</b> tetapi leadtime lapor → SPK lebih dari '+BATAS_LEADTIME_LAPOR_HARI+' hari. Dipakai untuk evaluasi kecepatan asuransi, tidak perlu dihubungi lagi.';
   return `
   <div class="modal-mask" data-action="close-ins-overlay">
     <div class="modal-box wide" data-stop-close>
       <div class="od-head">
         <div>
           <h2>Lapor Asuransi Lebih dari ${BATAS_LEADTIME_LAPOR_HARI} Hari</h2>
-          <div class="sub">Hanya kendaraan asuransi yang sudah lewat batas (SPK sudah terbit tapi lama, atau masih menunggu SPK). Urut dari yang paling lama. Klik baris untuk membuka detail.</div>
+          <div class="sub">${subTxt} Klik baris untuk membuka detail.</div>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" data-action="close-ins">✕</button>
       </div>
-      <div class="od-chips">${chips}</div>
+      <div class="ins-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected="${tab==='wait'}" class="ins-tab wait ${tab==='wait'?'active':''}" data-action="ins-tab" data-tab="wait">⏳ Menunggu SPK · ${waitAll.length}</button>
+        <button type="button" role="tab" aria-selected="${tab==='done'}" class="ins-tab done ${tab==='done'?'active':''}" data-action="ins-tab" data-tab="done">✓ SPK Sudah Terbit · ${doneAll.length}</button>
+      </div>
+      <div class="od-chips"><span class="od-chips-label">Asuransi</span>${chipsIns}</div>
+      <div class="od-chips"><span class="od-chips-label">SA</span>${chips}</div>
+      <div class="od-chips" style="font-size:12.5px;color:var(--ink-2);gap:4px 18px;">
+        <span><b>${items.length}</b> kendaraan</span>
+        <span>Rata-rata ${tab==='wait'?'menunggu':'leadtime SPK'}: <b>${avg==null?'—':avg.toFixed(1)+' hari'}</b></span>
+        <span>Terlama: <b>${items.length?items[0].info.days+' hari':'—'}</b></span>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>No</th><th>No Polisi / Pemilik</th><th>Nama SA</th><th>Asuransi</th><th>Tahap saat ini</th><th>Leadtime</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="6"><div class="empty-state">Tidak ada kendaraan asuransi yang lewat '+BATAS_LEADTIME_LAPOR_HARI+' hari. 🎉</div></td></tr>'}</tbody>
+          <thead><tr><th>No</th><th>No Polisi / Pemilik</th><th>Nama SA</th><th>Asuransi</th><th>Tahap saat ini</th><th>${tab==='wait'?'Lama Menunggu':'Leadtime SPK'}</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6"><div class="empty-state">'+emptyTxt+'</div></td></tr>'}</tbody>
         </table>
       </div>
     </div>
@@ -1677,6 +1726,22 @@ function renderOverdueModal(){
   </div>`;
 }
 
+// Persentase Light/Medium/Heavy dari kendaraan aktif yang SUDAH isi jumlah panel. Dibulatkan ke
+// bilangan bulat dengan metode sisa terbesar supaya totalnya tepat 100%.
+function panelPercents(by){
+  const keys = ['Light','Medium','Heavy'];
+  const total = keys.reduce(function(a,k){ return a + by[k]; }, 0);
+  const out = {Light:0, Medium:0, Heavy:0};
+  if(!total) return out;
+  const raw = keys.map(function(k){ return by[k]/total*100; });
+  const base = raw.map(function(x){ return Math.floor(x); });
+  let left = 100 - base.reduce(function(a,b){ return a+b; }, 0);
+  raw.map(function(x,i){ return {i:i, r:x-Math.floor(x)}; }).sort(function(a,b){ return b.r - a.r; })
+    .forEach(function(o){ if(left>0 && by[keys[o.i]]>0){ base[o.i]++; left--; } });
+  keys.forEach(function(k,i){ out[k] = base[i]; });
+  return out;
+}
+
 function renderStatTiles(list){
   const active = list.filter(v=>!vehicleSummary(v).allDone);
   const withTotal = list.map(v=>computeDerived(v).total_leadtime).filter(x=>x!=null);
@@ -1688,10 +1753,14 @@ function renderStatTiles(list){
     if(s) totalPanel += Number(v.jumlah_panel); else noPanel++;
   });
   const totalPanelTxt = String(Math.round(totalPanel*10)/10);
+  const pct = panelPercents(byPanel);
   const stopped = active.filter(v=>vehicleSummary(v).anyStopped).length;
   const today = todayISO();
   const overdue = overdueVehicles(list).length;
-  const insLate = lateInsurerVehicles(list).length;
+  const insLateList = lateInsurerVehicles(list);
+  const insLate = insLateList.length;
+  const insWait = insLateList.filter(function(it){ return !it.info.done; }).length;   // masih menunggu SPK
+  const insDone = insLate - insWait;                                                  // SPK sudah terbit tapi lama
   const waitPart = waitingPartVehicles(list);
   const waitPartAvg = waitPart.length ? waitPart.reduce(function(a,it){ return a+it.main.days; },0)/waitPart.length : null;
 
@@ -1713,10 +1782,11 @@ function renderStatTiles(list){
       <div class="sub">total panel dari ${active.length-noPanel} kendaraan</div>
       ${noPanel?`<div class="hint-click" role="button" tabindex="0" data-action="open-nopanel" style="cursor:pointer;text-decoration:underline;" title="Klik untuk melihat kendaraan yang belum diisi jumlah panelnya">${noPanel} belum isi jumlah panel — klik ›</div>`:''}
       <div class="value" style="font-size:15px;display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-        <span class="badge badge-light">Light ${byPanel.Light}</span>
-        <span class="badge badge-medium">Medium ${byPanel.Medium}</span>
-        <span class="badge badge-heavy">Heavy ${byPanel.Heavy}</span>
+        <span class="badge badge-light" title="Light: ${byPanel.Light} kendaraan = ${pct.Light}%">Light ${byPanel.Light} · ${pct.Light}%</span>
+        <span class="badge badge-medium" title="Medium: ${byPanel.Medium} kendaraan = ${pct.Medium}%">Medium ${byPanel.Medium} · ${pct.Medium}%</span>
+        <span class="badge badge-heavy" title="Heavy: ${byPanel.Heavy} kendaraan = ${pct.Heavy}%">Heavy ${byPanel.Heavy} · ${pct.Heavy}%</span>
       </div>
+      <div class="sub" style="margin-top:6px;font-size:11px;">% dari ${active.length-noPanel} kendaraan yang sudah isi jumlah panel</div>
     </div>
     <div class="stat-tile clickable" role="button" tabindex="0" data-action="open-stop" title="Klik untuk melihat daftar kendaraan job stoppage">
       <div class="label">Job Stoppage Aktif</div>
@@ -1740,6 +1810,10 @@ function renderStatTiles(list){
       <div class="label">Lapor Asuransi &gt; ${BATAS_LEADTIME_LAPOR_HARI} Hari</div>
       <div class="value mono" style="color:${insLate>0?'var(--bad)':'inherit'}">${insLate}</div>
       <div class="sub">kendaraan asuransi terlalu lama</div>
+      <div class="ins-split">
+        <div class="ins-split-row wait" role="button" tabindex="0" data-action="open-ins" data-tab="wait" title="Masih menunggu SPK — prioritas untuk dihubungi ke asuransi"><span>⏳ Menunggu SPK</span><b>${insWait}</b></div>
+        <div class="ins-split-row done" role="button" tabindex="0" data-action="open-ins" data-tab="done" title="SPK sudah terbit tetapi leadtime-nya lebih dari batas"><span>✓ SPK sudah terbit</span><b>${insDone}</b></div>
+      </div>
       <div class="hint-click" style="color:var(--bad);">Klik untuk lihat daftar ›</div>
     </div>
   </div>`;
@@ -1795,6 +1869,7 @@ function progressBarHTML(v){
 // Leadtime pelaporan asuransi: lapor ke asuransi -> SPK terbit. Kalau SPK belum terbit,
 // dihitung berjalan sampai hari ini (menunggu SPK). > 3 hari ditandai merah.
 const BATAS_LEADTIME_LAPOR_HARI = 3;
+const BATAS_PRIORITAS_SPK_HARI = 7; // menunggu SPK >= 7 hari = prioritas hubungi asuransi
 function asuransiLaporInfo(v){
   if(v.tipe_customer!=='Asuransi') return null;
   const c = computeDerived(v);
@@ -2541,7 +2616,12 @@ document.addEventListener('click', e=>{
   if(e.target.matches('[data-action="close-stop-overlay"]')){ STATE.showStop = false; render(); return; }
   const stopChip = e.target.closest('[data-action="stop-filter-sa"]');
   if(stopChip){ STATE.stopSA = stopChip.dataset.sa; render(); return; }
-  if(e.target.closest('[data-action="open-ins"]')){ STATE.showInsLate = true; STATE.insSA = 'all'; render(); return; }
+  const insOpen = e.target.closest('[data-action="open-ins"]');
+  if(insOpen){ STATE.showInsLate = true; STATE.insSA = 'all'; STATE.insName = 'all'; STATE.insTab = insOpen.dataset.tab==='done' ? 'done' : 'wait'; render(); return; }
+  const insTabBtn = e.target.closest('[data-action="ins-tab"]');
+  if(insTabBtn){ STATE.insTab = insTabBtn.dataset.tab==='done' ? 'done' : 'wait'; STATE.insSA = 'all'; STATE.insName = 'all'; render(); return; }
+  const insNameChip = e.target.closest('[data-action="ins-filter-name"]');
+  if(insNameChip){ STATE.insName = insNameChip.dataset.name==='__all' ? 'all' : insNameChip.dataset.name; STATE.insSA = 'all'; render(); return; }
   if(e.target.closest('[data-action="close-ins"]')){ STATE.showInsLate = false; render(); return; }
   if(e.target.matches('[data-action="close-ins-overlay"]')){ STATE.showInsLate = false; render(); return; }
   const insChip = e.target.closest('[data-action="ins-filter-sa"]');
@@ -2668,7 +2748,7 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && STATE.showStop){ STATE.showStop = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-stop"]')){ e.preventDefault(); STATE.showStop = true; STATE.stopSA = 'all'; render(); return; }
   if(e.key==='Escape' && STATE.showInsLate){ STATE.showInsLate = false; render(); return; }
-  if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-ins"]')){ e.preventDefault(); STATE.showInsLate = true; STATE.insSA = 'all'; render(); return; }
+  if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-ins"]')){ e.preventDefault(); const eo = e.target.closest('[data-action="open-ins"]'); STATE.showInsLate = true; STATE.insSA = 'all'; STATE.insName = 'all'; STATE.insTab = eo.dataset.tab==='done' ? 'done' : 'wait'; render(); return; }
   if(e.key==='Escape' && STATE.showOverdue){ STATE.showOverdue = false; render(); return; }
   if(e.key==='Enter' && e.target.closest && e.target.closest('[data-action="open-overdue"]')){ e.preventDefault(); STATE.showOverdue = true; STATE.overdueSA = 'all'; render(); return; }
   if(e.key!=='Enter') return;
