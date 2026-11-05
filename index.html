@@ -2190,7 +2190,7 @@ function renderSpkAlertModal(){
     <div class="modal-box" data-stop-close style="max-width:480px;border-top:5px solid var(--bad);">
       <h2 id="spkAlertTitle" style="color:var(--bad-ink);">⚠ Tanggal Terbit SPK Belum Terisi</h2>
       <p style="margin:0 0 8px;font-size:14px;line-height:1.5;">
-        Kendaraan <b>${esc(v.no_polisi||v.no_rangka||'—')}</b>${v.nama_asuransi?' ('+esc(v.nama_asuransi)+')':''} adalah unit <b>Asuransi</b> yang <b>Tanggal Terbit SPK</b>-nya belum diisi.
+        Kendaraan <b>${esc(v.no_polisi||v.no_rangka||'—')}</b>${v.nama_asuransi?' ('+esc(v.nama_asuransi)+')':''} adalah unit <b>Asuransi</b> dengan Status Lapor Asuransi <b>${esc(v.status_lapor_asuransi||'SPK Terbit')}</b>, tetapi <b>Tanggal Terbit SPK</b>-nya belum diisi.
       </p>
       <p style="margin:0 0 14px;font-size:14px;line-height:1.5;">
         ${blockMode
@@ -2225,7 +2225,7 @@ function renderDrawer(){
         </div>
       </div>
       <div class="drawer-body">
-        ${spkGate(v).blocked?`<div class="spk-lock-banner" role="alert"><b>⚠ Tanggal Terbit SPK belum terisi.</b> Kendaraan asuransi ini tidak bisa lanjut ke proses berikutnya (tahap setelah Pelaporan &amp; Intake terkunci). <button type="button" class="btn btn-sm btn-accent" data-action="spk-alert-fill">Isi Tanggal Terbit SPK</button></div>`:''}
+        ${spkGate(v).blocked?`<div class="spk-lock-banner" role="alert"><b>⚠ Tanggal Terbit SPK belum terisi.</b> Status Lapor Asuransi sudah "${esc(v.status_lapor_asuransi)}", sehingga kendaraan ini tidak bisa lanjut ke proses berikutnya (tahap setelah Pelaporan &amp; Intake terkunci). <button type="button" class="btn btn-sm btn-accent" data-action="spk-alert-fill">Isi Tanggal Terbit SPK</button></div>`:''}
         ${STAGE_DEFS.map((s,i)=>buildStageCard(s,i,v,computed,summary)).join('')}
         <p class="readonly-note">Kolom di luar POS Anda (${esc(currentRoleLabel())}) tampil non-aktif. Hubungi Kepala Bengkel / Admin Head bila perlu mengisi bagian POS lain.</p>
       </div>
@@ -2345,11 +2345,15 @@ function saveField(vid, key, value){
 }
 
 // ---- GERBANG "TANGGAL TERBIT SPK" ----
-// Kendaraan ASURANSI yang Tanggal Terbit SPK-nya belum terisi tidak boleh lanjut ke proses
-// berikutnya (Pengadaan Part dst.). Hanya tahap Pelaporan & Intake yang boleh diisi.
+// Hanya berlaku bila Status Lapor Asuransi = "SPK Terbit" ATAU "Customer Bawa SPK" TETAPI Tanggal
+// Terbit SPK masih kosong. Status lain (Lapor dari Bengkel, Estimasi, TPL, dst.) tidak dikunci
+// & tidak ada notifikasi.
+const SPK_GATE_STATUSES = ['SPK Terbit','Customer Bawa SPK'];
+// Kendaraan terkunci tidak boleh lanjut ke proses berikutnya (Pengadaan Part dst.); hanya tahap
+// Pelaporan & Intake yang boleh diisi.
 function spkGate(v){
-  if(!v || v.tipe_customer!=='Asuransi' || v.tanggal_terbit_spk) return {blocked:false};
-  return {blocked:true, reason:'Tanggal Terbit SPK belum terisi'};
+  if(!v || v.tipe_customer!=='Asuransi' || SPK_GATE_STATUSES.indexOf(v.status_lapor_asuransi)<0 || v.tanggal_terbit_spk) return {blocked:false};
+  return {blocked:true, reason:'Status '+v.status_lapor_asuransi+' tetapi Tanggal Terbit SPK belum terisi'};
 }
 let _fieldStageIdx = null;
 function fieldStageIdx(key){
@@ -2816,6 +2820,11 @@ document.addEventListener('change', e=>{
     if(t.type==='text' || t.tagName==='TEXTAREA') val = String(val).toUpperCase(); // isian teks bebas disimpan huruf besar
     if(key==='no_telp_pemilik' && t.type==='tel') val = normalizePhone(val);
     saveField(vid, key, val);
+    // SA memilih Status Lapor "SPK Terbit" / "Customer Bawa SPK" tetapi tanggalnya belum diisi -> pop-up pengingat.
+    if(key==='status_lapor_asuransi' && SPK_GATE_STATUSES.indexOf(val)>=0 && STATE.role==='sa'){
+      const sv = STATE.vehicles.find(x=>x.id===vid);
+      if(sv && spkGate(sv).blocked){ showSpkAlert(vid, 'open', null); render(); }
+    }
     if(key==='reschedule_janji_penyerahan' && val){
       const vv = STATE.vehicles.find(x=>x.id===vid);
       if(vv && !String(vv.alasan_reschedule_janji||'').trim()){
