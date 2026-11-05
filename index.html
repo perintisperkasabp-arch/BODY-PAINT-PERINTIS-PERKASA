@@ -578,8 +578,12 @@ const STAGE_DEFS = [
   { key:'produksi', title:'Masuk Produksi', roleLabel:'Service Advisor', startField:'tanggal_masuk_asuransi', finishField:null,
     fields:[
       {key:'tanggal_masuk_asuransi', label:'Tanggal Masuk / PKB (Asuransi)', type:'date', role:'sa', showIf:v=>v.tipe_customer==='Asuransi'},
+      {key:'alokasi_produksi_at', label:'Tanggal & Jam Alokasi Pengerjaan ke Production', type:'datetime', role:'sa', hint:'Kapan unit dialokasikan / diserahkan ke production untuk dikerjakan.'},
       {key:'tgl_janji_penyerahan', label:'Tanggal Janji Penyerahan (Target)', type:'date', role:'sa'},
       {key:'reschedule_janji_penyerahan', label:'Reschedule Janji Penyerahan', type:'date', role:'sa', hint:'Isi hanya jika tanggal janji penyerahan berubah dari target awal. Diproses oleh SA.'},
+      {key:'alasan_reschedule_janji', label:'Alasan Reschedule Janji Penyerahan', type:'textarea', role:'sa',
+       hint:'Wajib diisi bila Reschedule Janji Penyerahan diisi (mis. menunggu part, antrian production, persetujuan tambahan asuransi).',
+       warn:v=>(v.reschedule_janji_penyerahan && !String(v.alasan_reschedule_janji||'').trim()) ? 'Alasan reschedule belum diisi' : ''},
       ...addSpkProduksiFields(1), ...addSpkProduksiFields(2), ...addSpkProduksiFields(3),
       {key:'waiting_production', label:'Waiting Production', type:'computed', unit:'hari'},
     ]},
@@ -2026,7 +2030,8 @@ function buildFieldHTML(f, v, computed){
 
   const editable = fieldEditable(f);
   const disabledAttr = editable ? '' : 'disabled';
-  const hint = f.hint ? `<span class="hint"> — ${esc(f.hint)}</span>` : '';
+  const warnTxt = f.warn ? f.warn(v) : '';
+  const hint = (f.hint ? `<span class="hint"> — ${esc(f.hint)}</span>` : '') + (warnTxt ? `<span class="hint" style="color:var(--bad);font-weight:800;"> ⚠ ${esc(warnTxt)}</span>` : '');
   let control = '';
   const val = v[f.key];
 
@@ -2476,7 +2481,7 @@ async function loadVehicles(){
     // baru (mis. sumber_part dari Revisi v2.9/v3.6), jadi field itu tidak pernah tersimpan &
     // pilihan user "hilang lagi" setelah sinkron. listVehicles_ versi baru SELALU menyertakan
     // key tsb (null bila kosong), versi lama tidak — jadi absennya key = backend lama.
-    STATE.backendOutdated = STATE.vehicles.length>0 && !Object.prototype.hasOwnProperty.call(STATE.vehicles[0], 'final_inspection_cl_08_at');
+    STATE.backendOutdated = STATE.vehicles.length>0 && !Object.prototype.hasOwnProperty.call(STATE.vehicles[0], 'alokasi_produksi_at');
     STATE.connError = '';
     scheduleRender();
   }catch(err){
@@ -2811,6 +2816,13 @@ document.addEventListener('change', e=>{
     if(t.type==='text' || t.tagName==='TEXTAREA') val = String(val).toUpperCase(); // isian teks bebas disimpan huruf besar
     if(key==='no_telp_pemilik' && t.type==='tel') val = normalizePhone(val);
     saveField(vid, key, val);
+    if(key==='reschedule_janji_penyerahan' && val){
+      const vv = STATE.vehicles.find(x=>x.id===vid);
+      if(vv && !String(vv.alasan_reschedule_janji||'').trim()){
+        toast('Isi Alasan Reschedule Janji Penyerahan.');
+        setTimeout(function(){ const el = document.getElementById('f_'+vid+'_alasan_reschedule_janji'); if(el){ try{ if(el.scrollIntoView) el.scrollIntoView({block:'center'}); el.focus(); }catch(_){} } }, 120);
+      }
+    }
   }
 });
 
